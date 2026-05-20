@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LapoAnalytics</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div class="marketing-page">
+    <header class="marketing-nav">
+      <a class="marketing-logo" href="/">LapoAnalytics</a>
+      <nav class="marketing-links">
+        <a href="/products">Market</a>
+        <a href="/dashboard">Comparisons</a>
+        <a href="/products">Products</a>
+      </nav>
+      <div class="marketing-auth">
+        {% if user %}
+          <a class="login-link" href="/favorites">Yêu thích</a>
+          <a class="signup-button" href="/dashboard">Dashboard</a>
+        {% else %}
+          <a class="login-link" href="/login">Login</a>
+          <a class="signup-button" href="/register">Sign Up</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <section class="marketing-hero">
+      <div class="hero-copy">
+        <h1>Phân tích giá &amp; Đánh giá<br><span>Laptop chuyên sâu</span></h1>
+        <p>
+          Nền tảng dữ liệu hàng đầu giúp bạn theo dõi biến động giá,
+          so sánh cấu hình và đưa ra quyết định mua sắm laptop thông minh
+          dựa trên dữ liệu crawl thực tế.
+        </p>
+        <form class="hero-search" action="/products">
+          <div class="hero-search-box">
+            <span class="search-icon">⌕</span>
+            <input name="q" placeholder="Tìm kiếm mẫu laptop..." />
+          </div>
+          <button type="submit">Bắt đầu khám phá</button>
+        </form>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-device-card">
+          <div class="hero-image-placeholder">
+            <div class="hero-laptop">
+              <div class="hero-chart">
+                <svg viewBox="0 0 320 150" aria-hidden="true">
+                  <polyline points="0,100 35,88 70,104 108,50 145,78 184,42 218,86 255,62 288,80 320,45" />
+                  <g>
+                    <rect x="8" y="120" width="9" height="22" />
+                    <rect x="25" y="108" width="9" height="34" />
+                    <rect x="42" y="116" width="9" height="26" />
+                    <rect x="59" y="96" width="9" height="46" />
+                    <rect x="76" y="126" width="9" height="16" />
+                    <rect x="93" y="90" width="9" height="52" />
+                    <rect x="110" y="112" width="9" height="30" />
+                    <rect x="127" y="104" width="9" height="38" />
+                    <rect x="144" y="119" width="9" height="23" />
+                    <rect x="161" y="86" width="9" height="56" />
+                    <rect x="178" y="100" width="9" height="42" />
+                    <rect x="195" y="122" width="9" height="20" />
+                    <rect x="212" y="114" width="9" height="28" />
+                    <rect x="229" y="124" width="9" height="18" />
+                    <rect x="246" y="118" width="9" height="24" />
+                    <rect x="263" y="128" width="9" height="14" />
+                    <rect x="280" y="121" width="9" height="21" />
+                    <rect x="297" y="126" width="9" height="16" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="price-chip">
+          <span>↗</span>
+          <strong>-15%</strong>
+          <em>HÔM NAY</em>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature-strip">
+      <div class="feature-item">
+        <div class="feature-icon">◷</div>
+        <h3>Dữ liệu thời gian thực</h3>
+        <p>Cập nhật giá từ các sàn thương mại điện tử lớn mỗi lần crawler chạy.</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">▣</div>
+        <h3>So sánh 3+ đại lý</h3>
+        <p>Tìm giá tốt nhất từ các nhà bán lẻ uy tín nhất Việt Nam.</p>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">⌁</div>
+        <h3>Dự báo xu hướng giá</h3>
+        <p>Sử dụng dữ liệu lịch sử để nhận biết thời điểm giá đang tốt hơn.</p>
+      </div>
+    </section>
+
+    <main class="brand-market">
+      <div class="market-heading">
+        <h2>Thương hiệu tiêu biểu</h2>
+        <p>Sản phẩm bán chạy nhất từ các đối tác hàng đầu</p>
+      </div>
+
+      {% for brand, products in featured.items() %}
+      <section class="brand-section">
+        <div class="brand-section-head">
+          <div class="brand-title-line">
+            <span class="brand-icon">{{ "▰" if brand == "asus" else "▱" if brand == "msi" else "⌁" }}</span>
+            <h3>{{ brand|upper }}</h3>
+          </div>
+          <a href="/products?brand={{ brand }}">Xem tất cả →</a>
+        </div>
+
+        <div class="marketing-product-grid">
+          {% for product in products %}
+          <a class="marketing-product-card" href="/dashboard/product/{{ product.id }}">
+            <div class="product-image-slot">
+              <span>▧</span>
+            </div>
+            <div class="marketing-product-name">{{ product.display_name }}</div>
+            <div class="marketing-product-price">
+              <span>Giá từ</span>
+              <strong>{{ product.lowest_price|vnd }}</strong>
+            </div>
+          </a>
+          {% endfor %}
+
+          {% if products|length == 0 %}
+          {% for _ in range(4) %}
+          <div class="marketing-product-card">
+            <div class="product-image-slot"><span>▧</span></div>
+            <div class="marketing-product-name">Chưa có dữ liệu {{ brand|upper }}</div>
+            <div class="marketing-product-price">
+              <span>Giá từ</span>
+              <strong>—</strong>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+      {% endfor %}
+    </main>
+
+    <footer class="marketing-footer">
+      <div>
+        <h3>LapoAnalytics</h3>
+        <p>© 2026 LapoAnalytics. Precision data for tech enthusiasts.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#">Terms of Service</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Contact Support</a>
+        <a href="#">Advertise</a>
+        <a href="#">API Documentation</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

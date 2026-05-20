@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sản phẩm - LapoAnalytics</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <div class="logo">LA</div>
+        <div>
+          <div class="brand-title">LapoAnalytics</div>
+          <div class="brand-subtitle">Product catalog</div>
+        </div>
+      </a>
+
+      <nav class="nav">
+        <a class="nav-link" href="/">⌂ Trang chủ</a>
+        <a class="nav-link active" href="/products">▦ Danh sách sản phẩm</a>
+        <a class="nav-link" href="/favorites">♥ Sản phẩm yêu thích</a>
+        <div class="side-label" style="margin:14px 12px 4px">Thương hiệu</div>
+        <a class="brand-filter {% if not brand %}active{% endif %}" href="/products">▸ Tất cả</a>
+        {% for option in ["acer", "asus", "msi"] %}
+        <a class="brand-filter {% if brand == option %}active{% endif %}" href="/products?brand={{ option }}">▸ {{ option|upper }}</a>
+        {% endfor %}
+      </nav>
+
+      <div class="side-section" style="margin-top:auto">
+        {% if user %}
+          <div class="row-meta">Đang đăng nhập</div>
+          <strong>{{ user.display_name or user.email }}</strong>
+        {% else %}
+          <a class="btn btn-primary" style="width:100%;display:block;text-align:center" href="/login">Đăng nhập</a>
+        {% endif %}
+      </div>
+    </aside>
+
+    <main class="main products-page">
+      <section class="products-hero">
+        <div>
+          <div class="eyebrow">Product catalog</div>
+          <h1>Danh sách sản phẩm laptop</h1>
+          <p>
+            Chọn một sản phẩm để mở dashboard riêng, xem so sánh giá theo đại lý,
+            lịch sử giá và hỏi assistant về model đó.
+          </p>
+        </div>
+        <form id="productsSearchForm" class="products-search" action="/products">
+          <input id="productSearchInput" class="input" name="q" value="{{ query }}" placeholder="Tìm model, mã máy, thương hiệu..." />
+          <div class="select-shell">
+            <span>Hãng</span>
+            <select id="brandSelect" name="brand">
+              <option value="">Tất cả</option>
+              {% for option in ["acer", "asus", "msi"] %}
+                <option value="{{ option }}" {% if brand == option %}selected{% endif %}>{{ option|upper }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn-primary">Tìm kiếm</button>
+        </form>
+      </section>
+
+      <section class="products-toolbar">
+        <div>
+          <strong>{{ products|length }}</strong> sản phẩm
+          {% if brand %}<span class="muted">· {{ brand|upper }}</span>{% endif %}
+          {% if query %}<span class="muted">· "{{ query }}"</span>{% endif %}
+        </div>
+        <a class="btn" href="/products">Xoá bộ lọc</a>
+      </section>
+
+      <section class="products-grid">
+        {% for product in products %}
+        <article class="catalog-card">
+          <a class="catalog-link" href="/dashboard/product/{{ product.id }}">
+            <div class="catalog-image-slot"><span>▧</span></div>
+            <div class="catalog-body">
+              <div class="badge">{{ product.brand }}</div>
+              <h2>{{ product.display_name }}</h2>
+              <p class="muted">Model key: {{ product.model_key }}</p>
+              <div class="catalog-meta">
+                <div>
+                  <span>Giá từ</span>
+                  <strong>{{ product.lowest_price|vnd }}</strong>
+                </div>
+                <div>
+                  <span>Tốt nhất</span>
+                  <strong>{{ product.best_source or "—" }}</strong>
+                </div>
+              </div>
+            </div>
+          </a>
+          <button class="favorite-card-button" data-product-id="{{ product.id }}">♡ Theo dõi / Yêu thích</button>
+        </article>
+        {% endfor %}
+
+        {% if products|length == 0 %}
+        <div class="card card-pad span-12">
+          <h2>Không tìm thấy sản phẩm</h2>
+          <p class="muted">Thử đổi từ khoá hoặc bỏ lọc thương hiệu.</p>
+        </div>
+        {% endif %}
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const isLoggedIn = {{ "true" if user else "false" }};
+    const form = document.querySelector("#productsSearchForm");
+    const searchInput = document.querySelector("#productSearchInput");
+    const brandSelect = document.querySelector("#brandSelect");
+    let searchTimer = null;
+
+    brandSelect.addEventListener("change", () => form.submit());
+    searchInput.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => form.submit(), 450);
+    });
+
+    document.querySelectorAll(".favorite-card-button").forEach(button => {
+      button.addEventListener("click", async () => {
+        if (!isLoggedIn) {
+          window.location.href = "/login";
+          return;
+        }
+        const response = await fetch("/api/favorites", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({product_id: Number(button.dataset.productId)})
+        });
+        const data = await response.json();
+        if (response.ok) {
+          button.textContent = "✓ Đã theo dõi";
+          button.classList.add("favorite-card-button-saved");
+        } else {
+          alert(data.detail || "Không lưu được sản phẩm.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

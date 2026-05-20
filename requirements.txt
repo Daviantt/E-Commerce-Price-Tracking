@@ -1,0 +1,7 @@
+pandas
+requests
+psycopg[binary]
+fastapi
+uvicorn[standard]
+jinja2
+itsdangerous

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }} - LapoAnalytics</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <main class="auth-page">
+    <section class="card auth-card card-pad">
+      <a class="brand" href="/" style="border:0;padding:0;height:auto;margin-bottom:24px">
+        <div class="logo">LA</div>
+        <div>
+          <div class="brand-title">LapoAnalytics</div>
+          <div class="brand-subtitle">Laptop price intelligence</div>
+        </div>
+      </a>
+
+      <div class="eyebrow">{{ mode }}</div>
+      <h1 class="page-title">{{ title }}</h1>
+      <p class="muted">{{ subtitle }}</p>
+
+      <form id="authForm" class="form-stack" style="margin-top:20px">
+        {% if mode == "register" %}
+          <input class="input" name="display_name" placeholder="Tên hiển thị" />
+        {% endif %}
+        <input class="input" name="email" type="email" placeholder="Email" required />
+        <input class="input" name="password" type="password" placeholder="Mật khẩu" required />
+        <button class="btn btn-primary" type="submit">{{ button }}</button>
+      </form>
+
+      <div id="message"></div>
+
+      <p class="muted" style="margin-top:18px">
+        {% if mode == "register" %}
+          Đã có tài khoản? <a href="/login" style="color:var(--blue);font-weight:800">Đăng nhập</a>
+        {% else %}
+          Chưa có tài khoản? <a href="/register" style="color:var(--blue);font-weight:800">Tạo tài khoản</a>
+        {% endif %}
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const mode = "{{ mode }}";
+    document.querySelector("#authForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.target);
+      const payload = Object.fromEntries(form.entries());
+      const response = await fetch(`/api/${mode}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      const message = document.querySelector("#message");
+      if (!response.ok) {
+        message.className = "error";
+        message.textContent = data.detail || "Không thể xử lý yêu cầu.";
+        return;
+      }
+      message.className = "success";
+      message.textContent = "Thành công. Đang chuyển hướng...";
+      window.location.href = "/dashboard";
+    });
+  </script>
+</body>
+</html>

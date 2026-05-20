@@ -1,0 +1,440 @@
+<!DOCTYPE html><html class="light" lang="vi" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#000000",
+                        "tertiary-container": "#002113",
+                        "primary-container": "#131b2e",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-surface-variant": "#45464d",
+                        "tertiary": "#000000",
+                        "outline-variant": "#c6c6cd",
+                        "on-secondary-fixed": "#001a42",
+                        "inverse-surface": "#2d3133",
+                        "outline": "#76777d",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#d8e2ff",
+                        "inverse-primary": "#bec6e0",
+                        "surface": "#f7f9fb",
+                        "secondary-container": "#2170e4",
+                        "on-background": "#191c1e",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-high": "#e6e8ea",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#009668",
+                        "on-secondary-fixed-variant": "#004395",
+                        "surface-dim": "#d8dadc",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-fixed": "#dae2fd",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-bright": "#f7f9fb",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary": "#0058be",
+                        "on-primary-fixed": "#131b2e",
+                        "on-surface": "#191c1e",
+                        "on-primary-container": "#7c839b",
+                        "on-secondary-container": "#fefcff",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-tertiary-fixed": "#002113",
+                        "background": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#565e74",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "surface-container": "#eceef0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xs": "8px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "container-margin": "24px",
+                        "sm": "12px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                        "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "data-mono": ["13px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #E2E8F0;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #E2E8F0;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-surface border-b border-outline-variant flex justify-center">
+<nav class="w-full max-w-[1280px] flex justify-between items-center px-gutter py-xs">
+<div class="flex items-center gap-xl">
+<span class="font-headline-lg text-headline-lg font-black text-secondary">LapoAnalytics</span>
+<div class="hidden md:flex gap-md">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Market</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Reviews</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Comparisons</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Deals</a>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="font-label-md text-label-md text-secondary hover:bg-surface-container-low px-md py-xs rounded transition-all">Login</button>
+<button class="font-label-md text-label-md bg-primary text-on-primary px-lg py-xs rounded hover:opacity-80 active:scale-95 transition-all">Sign Up</button>
+</div>
+</nav>
+</header>
+<main class="pt-[64px]">
+<!-- Hero Section -->
+<section class="relative overflow-hidden bg-surface px-gutter lg:py-[60px] py-lg">
+<div class="max-w-[1280px] mx-auto grid lg:grid-cols-2 gap-xl items-center">
+<div class="z-10">
+<h1 class="font-display-lg text-display-lg text-primary mb-md leading-tight">
+                        Phân tích giá &amp; Đánh giá <br><span class="text-secondary">Laptop chuyên sâu</span>
+</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xl max-w-lg">
+                        Nền tảng dữ liệu hàng đầu giúp bạn theo dõi biến động giá, so sánh cấu hình và đưa ra quyết định mua sắm laptop thông minh dựa trên hàng ngàn đánh giá thực tế.
+                    </p>
+<div class="flex flex-col sm:flex-row gap-xs max-w-xl">
+<div class="relative flex-grow">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-[48px] pr-md py-md border border-outline-variant rounded focus:border-secondary focus:ring-1 focus:ring-secondary outline-none bg-surface-container-lowest" placeholder="Tìm kiếm mẫu laptop..." type="text">
+</div>
+<button class="bg-primary text-on-primary px-xl py-md font-label-md text-label-md rounded hover:opacity-90 transition-all">
+                            Bắt đầu khám phá
+                        </button>
+</div>
+</div>
+<div class="relative hidden lg:block">
+<div class="absolute -top-20 -right-20 w-80 h-80 bg-secondary/5 rounded-full blur-3xl"></div>
+<div class="relative glass-card p-md rounded-xl shadow-sm rotate-1 max-h-[400px]">
+<img alt="Dashboard Analytics" class="rounded-lg w-full border border-outline-variant max-h-[380px] object-contain" data-alt="A clean and professional software dashboard interface displayed on a sleek modern laptop screen. The dashboard features high-density financial-style data charts, price trend line graphs in tech-blue, and a minimalist list of laptop models. The lighting is soft and corporate, utilizing a bright light-mode aesthetic with crisp white backgrounds and subtle gray borders. The overall mood is sophisticated, data-driven, and highly organized." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2I5vI_TiuHOop9jbV9F8jzzHp3PDsZgBWMbDwffhHm6odJ51KB8LYYROvULYTsLzC9NSZ8lLWwPHMn9hsfbRWvivQVfq9DhSHX_akhWDJS4b1oRusPK-VXMX7we9JC-hXivHuccwb4CNh9ZZVSxImceky8XfUbWXw-Em0pG2kUSEWtKayBmCiAiSnhH2xHFvNkT-VwrcNhCq0_aB1DtE3kmwgyYMNf8X2AOaHGzyQQ67evgt8bpUUhPgWyIexOLmWPbCzKIBF">
+<div class="absolute -bottom-6 -left-6 bg-white p-md border border-outline-variant rounded shadow-sm animate-bounce duration-[3000ms]">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-on-tertiary-container bg-tertiary-fixed px-1 rounded-sm text-[20px]">trending_up</span>
+<span class="font-data-mono text-data-mono text-on-tertiary-container">-15% HÔM NAY</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Stats/Value Prop -->
+<section class="bg-primary-container py-xl px-gutter">
+<div class="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-xl">
+<div class="flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-[40px] text-secondary-fixed mb-md" data-weight="fill">update</span>
+<h3 class="font-headline-md text-headline-md text-on-primary mb-xs">Dữ liệu thời gian thực</h3>
+<p class="font-body-md text-body-md text-on-primary-container">Cập nhật giá từ các sàn thương mại điện tử lớn mỗi 15 phút.</p>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-[40px] text-secondary-fixed mb-md" data-weight="fill">storefront</span>
+<h3 class="font-headline-md text-headline-md text-on-primary mb-xs">So sánh 3+ đại lý</h3>
+<p class="font-body-md text-body-md text-on-primary-container">Tìm giá tốt nhất từ các nhà bán lẻ uy tín nhất Việt Nam.</p>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-[40px] text-secondary-fixed mb-md" data-weight="fill">query_stats</span>
+<h3 class="font-headline-md text-headline-md text-on-primary mb-xs">Phân tích xu hướng giá</h3>
+<p class="font-body-md text-body-md text-on-primary-container">Sử dụng AI để Phân tích giá cả hợp lý.</p>
+</div>
+</div>
+</section>
+<!-- Featured Section -->
+<section class="py-xl px-gutter">
+<div class="max-w-[1280px] mx-auto">
+<div class="mb-xl">
+<h2 class="font-headline-lg text-headline-lg text-primary">Thương hiệu tiêu biểu</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Sản phẩm bán chạy nhất từ các đối tác hàng đầu</p>
+</div>
+<div class="space-y-xl">
+<!-- ASUS Row -->
+<div class="flex flex-col gap-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary text-[28px]">laptop_mac</span>
+<h3 class="font-headline-md text-headline-md text-primary">ASUS</h3>
+</div>
+<a class="text-secondary font-label-md text-label-md hover:underline flex items-center gap-base" href="#">
+                                Xem tất cả <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<div class="overflow-x-auto custom-scrollbar pb-md">
+<div class="flex gap-lg min-w-max">
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all group">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">ROG Zephyrus G14</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">32.990.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">TUF Gaming A15</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">21.490.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Zenbook S 13 OLED</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">28.500.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">ROG Strix G16</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">38.990.000đ</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- MSI Row -->
+<div class="flex flex-col gap-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary text-[28px]">sports_esports</span>
+<h3 class="font-headline-md text-headline-md text-primary">MSI</h3>
+</div>
+<a class="text-secondary font-label-md text-label-md hover:underline flex items-center gap-base" href="#">
+                                Xem tất cả <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<div class="overflow-x-auto custom-scrollbar pb-md">
+<div class="flex gap-lg min-w-max">
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Katana 15</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">24.990.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Stealth 16 Studio</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">45.990.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Modern 15</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">13.490.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Cyborg 15</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">19.990.000đ</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Acer Row -->
+<div class="flex flex-col gap-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary text-[28px]">precision_manufacturing</span>
+<h3 class="font-headline-md text-headline-md text-primary">Acer</h3>
+</div>
+<a class="text-secondary font-label-md text-label-md hover:underline flex items-center gap-base" href="#">
+                                Xem tất cả <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<div class="overflow-x-auto custom-scrollbar pb-md">
+<div class="flex gap-lg min-w-max">
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Predator Helios Neo</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">36.990.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Nitro V 15</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">20.990.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Swift Go 14</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">18.490.000đ</span>
+</div>
+</div>
+<div class="w-[300px] bg-surface-container-lowest border border-outline-variant p-md rounded-lg hover:shadow-md transition-all">
+<div class="aspect-video bg-surface-container mb-md rounded overflow-hidden">
+<div class="w-full h-full flex items-center justify-center text-outline-variant">
+<span class="material-symbols-outlined text-[48px]">image</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-primary font-bold mb-xs">Aspire 5</p>
+<div class="flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Giá từ</span>
+<span class="font-data-mono text-data-mono text-secondary">12.990.000đ</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full bg-primary-container border-t border-outline-variant py-xl px-gutter flex flex-col md:flex-row justify-center">
+<div class="w-full max-w-[1280px] flex flex-col md:flex-row justify-between items-center gap-md">
+<div class="flex flex-col gap-xs items-center md:items-start">
+<span class="font-headline-md text-headline-md font-bold text-on-primary-container">LapoAnalytics</span>
+<p class="font-body-sm text-body-sm text-on-primary-container opacity-80 text-center md:text-left max-w-sm">
+                    © 2024 LapoAnalytics. All rights reserved. Precision data for tech enthusiasts.
+                </p>
+</div>
+<div class="flex flex-wrap justify-center gap-md">
+<a class="font-label-md text-label-md text-on-primary-container opacity-80 hover:opacity-100 hover:underline transition-all" href="#">Terms of Service</a>
+<a class="font-label-md text-label-md text-on-primary-container opacity-80 hover:opacity-100 hover:underline transition-all" href="#">Privacy Policy</a>
+<a class="font-label-md text-label-md text-on-primary-container opacity-80 hover:opacity-100 hover:underline transition-all" href="#">Contact Support</a>
+<a class="font-label-md text-label-md text-on-primary-container opacity-80 hover:opacity-100 hover:underline transition-all" href="#">Advertise</a>
+<a class="font-label-md text-label-md text-on-primary-container opacity-80 hover:opacity-100 hover:underline transition-all" href="#">API Documentation</a>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interactions for search focus
+        const searchInput = document.querySelector('input');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('scale-[1.02]');
+            searchInput.parentElement.classList.add('transition-transform');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('scale-[1.02]');
+        });
+    </script>
+
+
+</body></html>

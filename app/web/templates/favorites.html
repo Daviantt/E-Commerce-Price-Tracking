@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yêu thích - LapoAnalytics</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <div class="logo">LA</div>
+        <div>
+          <div class="brand-title">LapoAnalytics</div>
+          <div class="brand-subtitle">Favorites</div>
+        </div>
+      </a>
+      <nav class="nav">
+        <a class="nav-link" href="/dashboard">▦ Dashboard</a>
+        <a class="nav-link active" href="/favorites">♥ Sản phẩm yêu thích</a>
+        <a class="nav-link" href="/">⌂ Trang chủ</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">Saved products</div>
+          <h1 class="page-title">Sản phẩm yêu thích</h1>
+          <p class="muted">Các model bạn đã lưu để theo dõi sau.</p>
+        </div>
+        <a class="btn btn-primary" href="/dashboard">Quay lại dashboard</a>
+      </header>
+
+      <section class="card">
+        {% if not favorites %}
+          <div class="card-pad">
+            <h2>Chưa có sản phẩm yêu thích</h2>
+            <p class="muted">Vào dashboard, chọn model và bấm “Lưu yêu thích”.</p>
+          </div>
+        {% else %}
+          {% for item in favorites %}
+          <div class="favorite-row">
+            <div>
+              <div class="row-name">{{ item.display_name }}</div>
+              <div class="row-meta">{{ item.brand|upper }} · {{ item.model_key }} · lưu lúc {{ item.created_at }}</div>
+            </div>
+            <button class="btn btn-danger removeFavorite" data-id="{{ item.id }}">Bỏ lưu</button>
+          </div>
+          {% endfor %}
+        {% endif %}
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll(".removeFavorite").forEach(button => {
+      button.addEventListener("click", async () => {
+        await fetch(`/api/favorites/${button.dataset.id}`, {method: "DELETE"});
+        window.location.reload();
+      });
+    });
+  </script>
+</body>
+</html>

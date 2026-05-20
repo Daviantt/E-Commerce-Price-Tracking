@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard sản phẩm - LapoAnalytics</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <div class="logo">LA</div>
+        <div>
+          <div class="brand-title">LapoAnalytics</div>
+          <div class="brand-subtitle">Price intelligence</div>
+        </div>
+      </a>
+
+      <nav class="nav">
+        <a class="nav-link" href="/">⌂ Trang chủ</a>
+        <a class="nav-link" href="/products">▦ Danh sách sản phẩm</a>
+        <a class="nav-link active" href="/dashboard">◈ Dashboard sản phẩm</a>
+        <a class="nav-link" href="/favorites">♥ Sản phẩm yêu thích</a>
+        <div class="side-label" style="margin:14px 12px 4px">Thương hiệu</div>
+        {% for brand in ["acer", "asus", "msi"] %}
+        <a class="brand-filter" href="/products?brand={{ brand }}">▸ {{ brand|upper }}</a>
+        {% endfor %}
+      </nav>
+
+      <div class="side-section" style="margin-top:auto">
+        {% if user %}
+          <div class="row-meta">Đang đăng nhập</div>
+          <strong>{{ user.display_name or user.email }}</strong>
+          <button id="logoutButton" class="btn btn-danger" style="width:100%;margin-top:12px">Đăng xuất</button>
+        {% else %}
+          <a class="btn btn-primary" style="width:100%;display:block;text-align:center" href="/login">Đăng nhập</a>
+        {% endif %}
+      </div>
+    </aside>
+
+    <main class="main product-dashboard-main">
+      <a class="btn dashboard-back-button" href="/products">← Quay lại danh sách</a>
+      <section class="product-toolbar">
+        <div>
+          <div class="eyebrow">Product dashboard</div>
+          <h1 class="page-title">Dashboard sản phẩm</h1>
+        </div>
+      </section>
+
+      {% if not selected %}
+      <section class="card card-pad">
+        <h2>Chưa có dữ liệu</h2>
+        <p class="muted">Hãy import dữ liệu hoặc chạy crawler trước.</p>
+      </section>
+      {% else %}
+      <div class="grid">
+        <section class="span-7 stack">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <span id="productBrand" class="badge">{{ selected.brand }}</span>
+                <h2 id="productName" class="product-title">{{ selected.display_name }}</h2>
+                <div id="productMeta" class="muted">Model key: {{ selected.model_key }}</div>
+              </div>
+              <button id="favoriteButton" class="btn" data-product-id="{{ selected.id }}">♡ Lưu yêu thích</button>
+            </div>
+
+            <div class="hero-placeholder">
+              <div>
+                <div class="laptop-icon"></div>
+                <div>Ảnh sản phẩm sẽ được thêm khi có crawler hình ảnh.</div>
+              </div>
+            </div>
+
+            <div class="chat-wide-wrap">
+              <div class="panel chat-consultant-panel">
+                <div class="panel-title">Chat tư vấn sản phẩm <span class="badge badge-green">Beta</span></div>
+                <div id="chatBox" class="chat-box">
+                  <div class="chat-message">
+                    Mình sẽ không tự bịa thông số. Nếu dữ liệu chưa có cấu hình/kho, mình sẽ nói rõ phần nào chưa chắc.
+                  </div>
+                </div>
+                <form id="chatForm" class="chat-form">
+                  <input id="chatInput" class="input" placeholder="Hỏi: máy này giá ở đâu rẻ nhất?" />
+                  <button class="btn btn-primary">Gửi</button>
+                </form>
+            </div>
+          </div>
+        </section>
+
+        <aside class="span-5 stack">
+          <div class="metric-grid">
+            <div class="card card-pad">
+              <div class="metric-label">Giá thấp nhất</div>
+              <div id="lowestPrice" class="metric-value">{{ selected.lowest_price|vnd }}</div>
+              <div id="bestSource" class="row-meta">{{ selected.best_source or "—" }}</div>
+            </div>
+            <div class="card card-pad">
+              <div class="metric-label">Giá trung bình</div>
+              <div id="averagePrice" class="metric-value">{{ selected.average_price|vnd }}</div>
+              <div class="row-meta">Tính trên website có kinh doanh</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header soft">
+              <strong>So sánh giá đại lý</strong>
+              <span class="muted">VND</span>
+            </div>
+            <div id="priceList"></div>
+          </div>
+
+          <div class="card card-pad">
+            <div class="card-header" style="padding:0 0 16px;border-bottom:0">
+              <strong>Xu hướng giá</strong>
+              <span class="muted">Theo dữ liệu đã crawl</span>
+            </div>
+            <div id="historyBars" class="bars"></div>
+          </div>
+        </aside>
+      </div>
+      {% endif %}
+    </main>
+  </div>
+
+  <script>
+    const isLoggedIn = {{ "true" if user else "false" }};
+    let selectedProduct = {{ selected|tojson }};
+    const initialHistory = {{ history|tojson }};
+
+    const vnd = (value) => {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
+      return new Intl.NumberFormat("vi-VN").format(Number(value)) + "₫";
+    };
+
+    function sourceAbbr(label) {
+      if (label === "CellphoneS") return "CPS";
+      if (label === "Phong Vũ") return "PV";
+      if (label === "GearVN") return "GVN";
+      return label.slice(0, 3).toUpperCase();
+    }
+
+    function renderProduct(product, history = []) {
+      if (!product) return;
+      selectedProduct = product;
+      document.querySelector("#productBrand").textContent = product.brand;
+      document.querySelector("#productName").textContent = product.display_name;
+      document.querySelector("#productMeta").textContent = `Model key: ${product.model_key}`;
+      document.querySelector("#lowestPrice").textContent = vnd(product.lowest_price);
+      document.querySelector("#averagePrice").textContent = vnd(product.average_price);
+      document.querySelector("#bestSource").textContent = product.best_source || "—";
+      document.querySelector("#favoriteButton").dataset.productId = product.id;
+
+      const options = product.price_options || product.prices || [];
+      const availablePrices = (product.prices || []).map(item => item.source);
+      const priceList = document.querySelector("#priceList");
+      priceList.innerHTML = options.map((price) => {
+        const isBest = product.best_source === price.label && price.available;
+        const row = `
+          <div class="row-left">
+            <div class="source-logo ${price.available ? "" : "source-logo-disabled"}">${sourceAbbr(price.label)}</div>
+            <div>
+              <div class="row-name">${price.label}</div>
+              <div class="row-meta">${price.available ? (isBest ? "Giá tốt nhất hiện tại" : "Đang kinh doanh") : "Website này không kinh doanh model này"}</div>
+            </div>
+          </div>
+          <div class="row-price">
+            <div class="mono"><strong>${price.available ? vnd(price.current_price) : "Không kinh doanh"}</strong></div>
+            ${isBest ? '<div class="badge badge-green">Rẻ nhất</div>' : ''}
+          </div>
+        `;
+        if (!price.available) {
+          return `<div class="price-row price-row-disabled">${row}</div>`;
+        }
+        return `<a class="price-row" href="${price.url || "#"}" target="_blank">${row}</a>`;
+      }).join("");
+
+      renderHistory(history);
+    }
+
+    function renderHistory(history) {
+      const target = document.querySelector("#historyBars");
+      if (!history || history.length === 0) {
+        target.innerHTML = `<div class="panel panel-dashed" style="width:100%;text-align:center;color:var(--muted)">Chưa đủ lịch sử giá để vẽ biểu đồ</div>`;
+        return;
+      }
+      const prices = history.map(item => Number(item.price));
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      target.innerHTML = history.map(item => {
+        const height = max === min ? 60 : 25 + ((Number(item.price) - min) / (max - min)) * 70;
+        return `<div class="bar" title="${item.date}: ${vnd(item.price)}" style="height:${height}%"></div>`;
+      }).join("");
+    }
+
+    document.querySelector("#chatForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const input = document.querySelector("#chatInput");
+      const message = input.value.trim();
+      if (!message || !selectedProduct) return;
+      const chatBox = document.querySelector("#chatBox");
+      chatBox.insertAdjacentHTML("beforeend", `<div class="chat-message chat-user">${message}</div>`);
+      input.value = "";
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({product_id: selectedProduct.id, message})
+      });
+      const payload = await response.json();
+      chatBox.insertAdjacentHTML("beforeend", `<div class="chat-message">${payload.answer}</div>`);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    document.querySelector("#favoriteButton")?.addEventListener("click", async () => {
+      if (!isLoggedIn) {
+        window.location.href = "/login";
+        return;
+      }
+      const response = await fetch("/api/favorites", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({product_id: selectedProduct.id})
+      });
+      const data = await response.json();
+      alert(response.ok ? "Đã lưu sản phẩm yêu thích." : (data.detail || "Không lưu được."));
+    });
+
+    document.querySelector("#logoutButton")?.addEventListener("click", async () => {
+      await fetch("/api/logout", {method: "POST"});
+      window.location.href = "/";
+    });
+
+    renderProduct(selectedProduct, initialHistory);
+  </script>
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LapoAnalytics - Laptop Price Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#eceef0",
+                    "inverse-primary": "#bec6e0",
+                    "background": "#f7f9fb",
+                    "surface-tint": "#565e74",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#fefcff",
+                    "on-secondary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed": "#002113",
+                    "tertiary-container": "#002113",
+                    "on-secondary-fixed-variant": "#004395",
+                    "on-background": "#191c1e",
+                    "primary-fixed-dim": "#bec6e0",
+                    "secondary": "#0058be",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-secondary-fixed": "#001a42",
+                    "secondary-container": "#2170e4",
+                    "inverse-surface": "#2d3133",
+                    "on-primary-container": "#7c839b",
+                    "surface-variant": "#e0e3e5",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#f7f9fb",
+                    "surface-dim": "#d8dadc",
+                    "on-primary-fixed": "#131b2e",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-low": "#f2f4f6",
+                    "primary-fixed": "#dae2fd",
+                    "on-error": "#ffffff",
+                    "surface": "#f7f9fb",
+                    "on-surface": "#191c1e",
+                    "inverse-on-surface": "#eff1f3",
+                    "tertiary-fixed": "#6ffbbe",
+                    "primary-container": "#131b2e",
+                    "outline-variant": "#c6c6cd",
+                    "surface-container-high": "#e6e8ea",
+                    "on-primary": "#ffffff",
+                    "tertiary": "#000000",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "outline": "#76777d",
+                    "primary": "#000000",
+                    "on-tertiary-container": "#009668",
+                    "on-surface-variant": "#45464d",
+                    "secondary-fixed": "#d8e2ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "base": "4px",
+                    "xl": "32px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "container-margin": "24px",
+                    "gutter": "16px",
+                    "sm": "12px",
+                    "xs": "8px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "data-mono": ["JetBrains Mono"],
+                    "headline-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-lg": ["Inter"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .data-card { border: 1px solid #E2E8F0; background: #FFFFFF; transition: all 0.2s ease; }
+        .data-card:hover { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
+        .mono-val { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e0e3e5; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- TopAppBar -->
+<header class="bg-surface-container-lowest text-primary docked full-width top-0 sticky z-50 border-b border-outline-variant flex justify-between items-center w-full px-lg py-xs">
+<div class="flex items-center gap-md">
+<span class="text-headline-md font-headline-md font-bold text-primary">LapoAnalytics</span>
+<div class="hidden md:flex ml-xl gap-md items-center">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="pl-xl pr-md py-xs bg-surface-container-low border border-outline-variant rounded-lg text-body-md focus:outline-none focus:border-secondary w-64" placeholder="Tìm kiếm mã laptop..." type="text"/>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-xs hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-xs hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden ml-xs">
+<img alt="User profile photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAp9gUJx80EZMXu4uJZL862QenYilj9cHo715uJE52f-b_SUMznc-NqShVj5DYHvMQSNvIqjxUEuCD97EqiBN7UN6GQDluVUDTzGOorf9KzF8gfLRGpwbukTlKkNEy5HcLgcwwpTP3QTqiitxWBjhWMsOGoIneTNaWw_nWLK4Rh1G5A6a4RvMM5dG8Rd6XVbdBTDv_Mc3EL-vE0T3hhTqiRVt9wOKFh-2Y_5zww2_s5brKOaFNJvWlmV_y6xFPRxsMYFa4IfAxiBn_U"/>
+</div>
+</div>
+</header>
+<div class="flex">
+<!-- SideNavBar -->
+<aside class="h-[calc(100vh-48px)] w-64 sticky left-0 top-[48px] bg-surface-container-low border-r border-outline-variant flex flex-col py-md shrink-0">
+<div class="px-md mb-lg">
+<h2 class="text-headline-md font-headline-md font-black text-secondary">Market View</h2>
+<p class="text-label-md font-label-md text-on-surface-variant opacity-70">Precision Analytics</p>
+</div>
+<nav class="flex-1 overflow-y-auto space-y-1">
+<!-- Dashboard Active -->
+<a class="bg-secondary-container text-on-secondary-container font-semibold rounded-lg mx-2 flex items-center px-4 py-3 scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined mr-sm">dashboard</span>
+<span class="text-label-md font-label-md">Dashboard</span>
+</a>
+<!-- Brands -->
+<div class="mt-lg">
+<div class="px-4 py-2 text-label-md font-bold text-on-surface-variant uppercase tracking-wider">Brands</div>
+<div class="brand-group">
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 flex items-center px-4 py-3 mx-2" href="#">
+<span class="material-symbols-outlined mr-sm">laptop_mac</span>
+<span class="text-label-md font-label-md">Apple</span>
+</a>
+<div class="ml-xl flex flex-col border-l border-outline-variant my-1">
+<button class="text-left py-1.5 px-4 text-body-sm text-secondary font-semibold border-l-2 border-secondary -ml-[1px]">MacBook Pro M3</button>
+<button class="text-left py-1.5 px-4 text-body-sm text-on-surface-variant hover:text-secondary">MacBook Air M2</button>
+<button class="text-left py-1.5 px-4 text-body-sm text-on-surface-variant hover:text-secondary">MacBook Pro 16"</button>
+</div>
+</div>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 flex items-center px-4 py-3 mx-2" href="#">
+<span class="material-symbols-outlined mr-sm">terminal</span>
+<span class="text-label-md font-label-md">Asus</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 flex items-center px-4 py-3 mx-2" href="#">
+<span class="material-symbols-outlined mr-sm">computer</span>
+<span class="text-label-md font-label-md">Dell</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 flex items-center px-4 py-3 mx-2" href="#">
+<span class="material-symbols-outlined mr-sm">laptop_windows</span>
+<span class="text-label-md font-label-md">Lenovo</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 flex items-center px-4 py-3 mx-2" href="#">
+<span class="material-symbols-outlined mr-sm">monitor</span>
+<span class="text-label-md font-label-md">HP</span>
+</a>
+</div>
+</nav>
+<div class="mt-auto px-2 space-y-1 pt-md border-t border-outline-variant">
+<button class="w-full bg-primary text-on-primary py-xs rounded-lg mb-md text-label-md font-semibold hover:opacity-90 transition-opacity">Export Report</button>
+<a class="text-on-surface-variant hover:bg-surface-container-highest flex items-center px-4 py-2 mx-2" href="#">
+<span class="material-symbols-outlined mr-sm">help_outline</span>
+<span class="text-label-md font-label-md">Help Center</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-highest flex items-center px-4 py-2 mx-2 text-error" href="#">
+<span class="material-symbols-outlined mr-sm">logout</span>
+<span class="text-label-md font-label-md">Log Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 grid grid-cols-12 gap-gutter p-gutter">
+<!-- Center Column: Product Details (7 Columns) -->
+<div class="col-span-12 lg:col-span-7 space-y-gutter">
+<div class="data-card rounded-xl overflow-hidden flex flex-col h-full">
+<div class="p-lg border-b border-outline-variant flex justify-between items-start">
+<div>
+<span class="inline-block px-sm py-[2px] bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase rounded-full mb-xs">Mẫu Mới 2024</span>
+<h1 class="text-headline-lg font-headline-lg">MacBook Pro 14" M3 2024</h1>
+<p class="text-body-md text-on-surface-variant">Chip M3 8-core CPU / 10-core GPU, 8GB RAM, 512GB SSD</p>
+</div>
+<span class="material-symbols-outlined text-secondary text-headline-md">verified</span>
+</div>
+<div class="relative group h-96 bg-surface-container-low flex items-center justify-center p-xl">
+<img alt="MacBook Pro" class="max-h-full object-contain transition-transform duration-500 group-hover:scale-105" data-alt="A professional studio product shot of a space gray MacBook Pro laptop on a pristine, minimalist white background. The lighting is soft and directional, highlighting the sleek metallic finish and thin design profile of the device. The composition is clean and modern, evoking a high-end corporate aesthetic with a sense of precision and technological luxury." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBLEw8KS0XVMxyT8j7ExEv1to028efPcANIgEjcFeqzh1VnW0wIx7tewh-0ZMje0xEEkf7mVUI8Na0z91J32yZnh3GFn9QizfPRPS0ANHYarLFxpEXlgLsEqrKMVYuCjSBW3zOHJO21s2aqPsA8mO-kOoJFYjsMgOBb0gSwzBKF8cR2A0XOXHM06-3jJxWY_lDVYIFCd62xnYh7qS8hWfbMn4o8c_Qat1X_xfe_N_TsomAPQWzG5vwmfxhXYuLfK2hKUBSzDYL8P0G"/>
+<div class="absolute bottom-md right-md flex gap-xs">
+<button class="bg-white/80 backdrop-blur-sm p-xs rounded-full border border-outline-variant hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-body-md">fullscreen</span>
+</button>
+<button class="bg-white/80 backdrop-blur-sm p-xs rounded-full border border-outline-variant hover:bg-white transition-colors">
+<span class="material-symbols-outlined text-body-md">share</span>
+</button>
+</div>
+</div>
+<div class="p-lg grid grid-cols-2 gap-lg border-t border-outline-variant">
+<div class="space-y-sm">
+<h3 class="text-label-md font-bold text-on-surface-variant uppercase tracking-tight">Cấu hình chi tiết</h3>
+<div class="space-y-xs">
+<div class="flex items-center justify-between py-xs border-b border-outline-variant border-dashed">
+<span class="text-body-sm text-on-surface-variant">CPU</span>
+<span class="text-body-sm font-semibold">Apple M3 (8-core)</span>
+</div>
+<div class="flex items-center justify-between py-xs border-b border-outline-variant border-dashed">
+<span class="text-body-sm text-on-surface-variant">Bộ nhớ RAM</span>
+<span class="text-body-sm font-semibold">8 GB (LPDDR5)</span>
+</div>
+<div class="flex items-center justify-between py-xs border-b border-outline-variant border-dashed">
+<span class="text-body-sm text-on-surface-variant">Ổ cứng SSD</span>
+<span class="text-body-sm font-semibold">512 GB PCIe Gen4</span>
+</div>
+<div class="flex items-center justify-between py-xs border-b border-outline-variant border-dashed">
+<span class="text-body-sm text-on-surface-variant">Màn hình</span>
+<span class="text-body-sm font-semibold">14.2" Liquid Retina XDR</span>
+</div>
+</div>
+</div>
+<div class="space-y-sm">
+<h3 class="text-label-md font-bold text-on-surface-variant uppercase tracking-tight">Trạng thái kho</h3>
+<div class="bg-surface-container rounded-lg p-md">
+<div class="flex items-center gap-sm mb-xs">
+<div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+<span class="text-body-sm font-semibold text-on-surface">Sẵn hàng toàn quốc</span>
+</div>
+<p class="text-body-sm text-on-surface-variant leading-relaxed">Cập nhật lần cuối: 15 phút trước. Giá có thể thay đổi tùy khu vực.</p>
+<button class="mt-md w-full py-xs border border-secondary text-secondary rounded-lg text-body-sm font-bold hover:bg-secondary/5 transition-colors">Theo dõi biến động giá</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Analytics & Comparison (5 Columns) -->
+<div class="col-span-12 lg:col-span-5 space-y-gutter">
+<!-- Market Summary -->
+<div class="grid grid-cols-2 gap-sm">
+<div class="data-card rounded-xl p-md">
+<p class="text-label-md text-on-surface-variant mb-xs">Giá thấp nhất</p>
+<p class="text-headline-md font-bold mono-val">39.490.000₫</p>
+<div class="flex items-center text-emerald-500 mt-xs">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+<span class="text-[11px] font-bold ml-[2px]">-2.4% vs tuần trước</span>
+</div>
+</div>
+<div class="data-card rounded-xl p-md">
+<p class="text-label-md text-on-surface-variant mb-xs">Giá trung bình</p>
+<p class="text-headline-md font-bold mono-val">40.250.000₫</p>
+<div class="flex items-center text-on-surface-variant mt-xs">
+<span class="material-symbols-outlined text-sm">balance</span>
+<span class="text-[11px] font-bold ml-[2px]">Ổn định thị trường</span>
+</div>
+</div>
+</div>
+<!-- Price Comparison Table -->
+<div class="data-card rounded-xl flex flex-col overflow-hidden">
+<div class="p-md border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
+<h3 class="text-label-md font-bold uppercase tracking-tight">So sánh giá đại lý</h3>
+<span class="text-[10px] text-on-surface-variant uppercase font-bold">VND</span>
+</div>
+<div class="divide-y divide-outline-variant">
+<!-- Lowest Price Item -->
+<div class="p-md hover:bg-surface-container-low flex items-center justify-between transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg border border-outline-variant bg-white flex items-center justify-center p-xs">
+<span class="font-black text-blue-600 text-[10px]">PV</span>
+</div>
+<div>
+<p class="text-body-sm font-bold">Phong Vũ</p>
+<p class="text-[10px] text-on-surface-variant">Đã bao gồm VAT</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-body-sm font-bold mono-val">39.490.000₫</p>
+<span class="inline-block px-xs py-[2px] bg-tertiary-fixed-dim/20 text-on-tertiary-container text-[9px] font-bold rounded mt-1">RẺ NHẤT</span>
+</div>
+</div>
+<div class="p-md hover:bg-surface-container-low flex items-center justify-between transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg border border-outline-variant bg-white flex items-center justify-center p-xs">
+<span class="font-black text-red-600 text-[10px]">CPS</span>
+</div>
+<div>
+<p class="text-body-sm font-bold">CellphoneS</p>
+<p class="text-[10px] text-on-surface-variant">Tặng túi chống sốc</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-body-sm font-bold mono-val">39.990.000₫</p>
+<span class="text-[10px] text-on-surface-variant">+500k vs thấp nhất</span>
+</div>
+</div>
+<div class="p-md hover:bg-surface-container-low flex items-center justify-between transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg border border-outline-variant bg-white flex items-center justify-center p-xs">
+<span class="font-black text-orange-600 text-[10px]">GVN</span>
+</div>
+<div>
+<p class="text-body-sm font-bold">GearVN</p>
+<p class="text-[10px] text-on-surface-variant">Bảo hành 24 tháng</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-body-sm font-bold mono-val">41.290.000₫</p>
+<span class="text-[10px] text-on-surface-variant">+1.8m vs thấp nhất</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Price History Chart Placeholder -->
+<div class="data-card rounded-xl p-md space-y-md">
+<div class="flex justify-between items-center">
+<h3 class="text-label-md font-bold uppercase tracking-tight">Xu hướng giá (30 ngày)</h3>
+<div class="flex gap-xs">
+<button class="w-2 h-2 rounded-full bg-secondary"></button>
+<button class="w-2 h-2 rounded-full bg-outline-variant"></button>
+</div>
+</div>
+<div class="h-32 flex items-end justify-between gap-1 px-xs pt-md">
+<!-- Mock Bars -->
+<div class="w-full bg-surface-container-highest rounded-t-sm" style="height: 80%"></div>
+<div class="w-full bg-surface-container-highest rounded-t-sm" style="height: 85%"></div>
+<div class="w-full bg-surface-container-highest rounded-t-sm" style="height: 75%"></div>
+<div class="w-full bg-surface-container-highest rounded-t-sm" style="height: 70%"></div>
+<div class="w-full bg-secondary rounded-t-sm" style="height: 60%"></div>
+<div class="w-full bg-secondary rounded-t-sm" style="height: 55%"></div>
+<div class="w-full bg-secondary rounded-t-sm" style="height: 45%"></div>
+<div class="w-full bg-secondary rounded-t-sm" style="height: 40%"></div>
+</div>
+<div class="flex justify-between text-[9px] text-on-surface-variant font-bold px-xs">
+<span>1 THG 01</span>
+<span>15 THG 01</span>
+<span>HÔM NAY</span>
+</div>
+<div class="p-sm bg-surface-container-low rounded-lg border border-outline-variant border-dashed">
+<p class="text-body-sm font-semibold">Dự báo: Tiếp tục giảm</p>
+<p class="text-[11px] text-on-surface-variant">Dựa trên dữ liệu tồn kho và sự kiện Apple sắp tới, giá có thể giảm thêm 1-2% vào tháng sau.</p>
+</div>
+</div>
+<!-- Ad/Promo Action -->
+<div class="relative overflow-hidden rounded-xl bg-primary h-24 p-md flex items-center group cursor-pointer">
+<div class="relative z-10 space-y-1">
+<p class="text-on-primary font-bold text-body-md">Mua ngay giá tốt nhất</p>
+<p class="text-on-primary/70 text-[11px]">Chuyển đến trang Phong Vũ và nhận ưu đãi</p>
+</div>
+<span class="material-symbols-outlined absolute right-md text-display-lg text-white/10 group-hover:text-white/20 transition-all group-hover:scale-110">arrow_forward</span>
+<!-- Decorative Gradient -->
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-white/10"></div>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interaction Script -->
+<script>
+        document.querySelectorAll('.data-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.borderColor = '#0058be';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.borderColor = '#E2E8F0';
+            });
+        });
+    </script>
+</body></html>
