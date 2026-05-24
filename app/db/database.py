@@ -171,6 +171,8 @@ def import_raw_csv(path, run_id=None):
         "collection_handle",
         "source",
         "crawled_at",
+        "image_url",
+        "image_urls",
     }
 
     inserted_or_skipped = 0

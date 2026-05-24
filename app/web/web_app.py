@@ -75,6 +75,20 @@ def format_vnd(value):
 templates.env.filters["vnd"] = format_vnd
 
 
+def clean_image_url(value):
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except TypeError:
+        pass
+    value = str(value).strip()
+    if not value or value.lower() in {"nan", "none", "null"}:
+        return None
+    return value
+
+
 def ensure_schema():
     global _schema_ready
     if _schema_ready:
@@ -145,6 +159,7 @@ def require_user(request):
 def product_from_record(record):
     prices = []
     price_options = []
+    image_url = clean_image_url(record.get("image_url"))
     for source in SOURCE_LABELS:
         current_price = clean_number(record.get(f"gia_ban_{source}"))
         original_price = clean_number(record.get(f"gia_goc_{source}"))
@@ -157,6 +172,7 @@ def product_from_record(record):
             "url": url,
             "available": current_price is not None,
             "status": "Đang kinh doanh" if current_price is not None else "Không kinh doanh",
+            "image_url": image_url,
         }
         price_options.append(option)
         if current_price is not None:
@@ -180,6 +196,7 @@ def product_from_record(record):
         "lowest_price": lowest_price,
         "average_price": average_price,
         "best_source": prices[0]["label"] if prices else None,
+        "image_url": image_url,
     }
 
 
@@ -225,12 +242,54 @@ def fetch_products_from_database(limit=80):
             columns = [desc.name for desc in cur.description]
             rows = [dict(zip(columns, row)) for row in cur.fetchall()]
 
+    rows = enrich_records_with_images(rows)
     return [product_from_record(row) for row in rows]
 
 
 def latest_csv(directory, pattern):
     files = sorted(Path(directory).glob(pattern))
     return files[-1] if files else None
+
+
+def load_latest_image_lookup():
+    path = latest_csv(PROCESSED_DIR, "laptop_price_compare_*.csv")
+    if path is None:
+        path = latest_csv(FALLBACK_PROCESSED_DIR, "laptop_price_compare_*.csv")
+    if path is None:
+        return {}
+
+    try:
+        df = pd.read_csv(path)
+    except Exception:
+        return {}
+
+    required_columns = {"model_key", "brand", "image_url"}
+    if not required_columns.issubset(df.columns):
+        return {}
+
+    lookup = {}
+    for _, row in df.iterrows():
+        image_url = clean_image_url(row.get("image_url"))
+        model_key = row.get("model_key")
+        brand = row.get("brand")
+        if image_url and pd.notna(model_key) and pd.notna(brand):
+            lookup[(str(model_key), str(brand).lower())] = image_url
+    return lookup
+
+
+def enrich_records_with_images(records):
+    image_lookup = load_latest_image_lookup()
+    if not image_lookup:
+        return records
+
+    for record in records:
+        if clean_image_url(record.get("image_url")):
+            continue
+        key = (str(record.get("model_key")), str(record.get("brand")).lower())
+        image_url = image_lookup.get(key)
+        if image_url:
+            record["image_url"] = image_url
+    return records
 
 
 def fetch_products_from_csv(limit=80):

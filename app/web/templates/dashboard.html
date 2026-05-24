@@ -67,10 +67,14 @@
             </div>
 
             <div class="hero-placeholder">
-              <div>
-                <div class="laptop-icon"></div>
-                <div>Ảnh sản phẩm sẽ được thêm khi có crawler hình ảnh.</div>
-              </div>
+                    {% if selected.image_url %}
+                       <img class="product-hero-image" src="{{ selected.image_url }}" alt="{{ selected.display_name }}">
+                    {% else %}
+                  <div>
+                      <div class="laptop-icon"></div>
+                       <div>Ảnh sản phẩm sẽ được thêm khi có crawler hình ảnh.</div>
+                  </div>
+                    {% endif %}
             </div>
 
             <div class="chat-wide-wrap">
