@@ -76,7 +76,13 @@
         {% for product in products %}
         <article class="catalog-card">
           <a class="catalog-link" href="/dashboard/product/{{ product.id }}">
-            <div class="catalog-image-slot"><span>▧</span></div>
+           <div class="catalog-image-slot">
+              {% if product.image_url %}
+                  <img src="{{ product.image_url }}" alt="{{ product.display_name }}" loading="lazy">
+              {% else %}
+                  <span>▧</span>
+              {% endif %}
+           </div>
             <div class="catalog-body">
               <div class="badge">{{ product.brand }}</div>
               <h2>{{ product.display_name }}</h2>

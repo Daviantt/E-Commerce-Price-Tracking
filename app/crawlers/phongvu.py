@@ -27,7 +27,7 @@ HEADERS = {
     "content-type": "application/json",
 }
 
-
+# vòng lặp đào tìm dữ liệu nhiều lớp
 def get_nested(data, *keys, default=None):
     """Lấy dữ liệu lồng nhau an toàn."""
     current = data
@@ -39,6 +39,30 @@ def get_nested(data, *keys, default=None):
             return default
     return current
 
+def extract_image_urls(item):
+    candidates = [
+        item.get("imageUrl"),
+        item.get("image_url"),
+        item.get("thumbnail"),
+        item.get("thumbnailUrl"),
+        get_nested(item, "product", "imageUrl"),
+        get_nested(item, "product", "thumbnail"),
+    ]
+
+    urls = [url for url in candidates if isinstance(url, str) and url]
+
+    for key in ("images", "imageUrls"):
+        value = item.get(key)
+        if isinstance(value, list):
+            for image in value:
+                if isinstance(image, str):
+                    urls.append(image)
+                elif isinstance(image, dict):
+                    src = image.get("url") or image.get("src") or image.get("imageUrl")
+                    if src:
+                        urls.append(src)
+
+    return list(dict.fromkeys(urls))
 
 def normalize_product(item, brand):
     """Chuẩn hóa một sản phẩm từ JSON API thành một dòng dữ liệu."""
@@ -84,6 +108,8 @@ def normalize_product(item, brand):
         or get_nested(item, "prices", "supplierRetailPrice")
     )
 
+    image_urls = extract_image_urls(item)
+
     return {
         "sku": sku,
         "name": name,
@@ -93,6 +119,8 @@ def normalize_product(item, brand):
         "url": product_url,
         "source": "phongvu",
         "crawled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "image_url": image_urls[0] if image_urls else None,
+        "image_urls": image_urls,
     }
 
 

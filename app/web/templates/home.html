@@ -121,7 +121,11 @@
           {% for product in products %}
           <a class="marketing-product-card" href="/dashboard/product/{{ product.id }}">
             <div class="product-image-slot">
-              <span>▧</span>
+              {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.display_name }}" loading="lazy">
+              {% else %}
+                <span>▧</span>
+              {% endif %}
             </div>
             <div class="marketing-product-name">{{ product.display_name }}</div>
             <div class="marketing-product-price">

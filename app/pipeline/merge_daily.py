@@ -11,6 +11,7 @@ RAW_DIR = Path("D:/Data/raw")
 MERGED_DIR = Path("D:/Data/processed")
 FALLBACK_MERGED_DIR = Path("output")
 SOURCES = ("phongvu", "gearvn", "cellphones")
+IMAGE_SOURCE_PRIORITY = ("gearvn", "phongvu", "cellphones")
 BRANDS = ("acer", "asus", "msi")
 
 
@@ -103,6 +104,16 @@ def build_brand_merged_frame(brand):
             "brand": brand,
             "ngay_crawl": max(group["crawl_date"]),
         }
+        image_url = None
+        for source in IMAGE_SOURCE_PRIORITY:
+            source_rows = group[group["source"] == source]
+            if not source_rows.empty and "image_url" in source_rows.columns:
+                candidate = source_rows.iloc[0].get("image_url")
+                if pd.notna(candidate) and candidate:
+                    image_url = candidate
+                    break
+
+        row["image_url"] = image_url
 
         for source in SOURCES:
             source_rows = group[group["source"] == source]

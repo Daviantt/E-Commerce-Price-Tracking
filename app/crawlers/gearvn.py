@@ -38,11 +38,19 @@ HEADERS = {
 def build_collection_products_url(handle):
     return f"{BASE_URL}/collections/{handle}/products.json"
 
+def extract_image_urls(item):
+    urls = []
+    for image in item.get("images") or []:
+        src = image.get("src") if isinstance(image, dict) else None
+        if src:
+            urls.append(src)
+    return urls
 
 def normalize_product(item, brand, segment, collection_handle):
     variants = item.get("variants") or []
     first_variant = variants[0] if variants else {}
     handle = item.get("handle")
+    image_urls = extract_image_urls(item)
 
     return {
         "product_id": item.get("id"),
@@ -57,6 +65,8 @@ def normalize_product(item, brand, segment, collection_handle):
         "collection_handle": collection_handle,
         "source": "gearvn",
         "crawled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "image_url": image_urls[0] if image_urls else None,
+        "image_urls": image_urls,
     }
 
 

@@ -156,13 +156,15 @@ button, input { font: inherit; }
 
 .product-title { margin: 10px 0 6px; font-size: 24px; line-height: 1.25; letter-spacing: -0.03em; }
 .hero-placeholder {
-  height: 280px;
-  background: #f1f5f9;
+  height: 240px;
+  padding: 22px;
+  background: #fff;
   border-bottom: 1px solid var(--line);
   display: grid;
   place-items: center;
   text-align: center;
   color: var(--muted);
+  overflow: hidden;
 }
 .laptop-icon {
   width: 96px;
@@ -624,6 +626,31 @@ button, input { font: inherit; }
   color: #b8bdc7;
   font-size: 40px;
   margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.product-image-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.product-hero-image {
+  width: auto;
+  height: auto;
+  max-width: min(560px, 86%);
+  max-height: 196px;
+  object-fit: contain;
+  display: block;
+}
+
+.catalog-image-slot img {
+  width: calc(100% - 28px);
+  height: calc(100% - 28px);
+  object-fit: contain;
+  object-position: center center;
+  display: block;
 }
 
 .marketing-product-name {
@@ -843,12 +870,14 @@ button, input { font: inherit; }
 }
 
 .catalog-image-slot {
-  height: 155px;
-  background: #e9ecef;
+  height: 178px;
+  background: #fff;
   display: grid;
   place-items: center;
   color: #b8bdc7;
   font-size: 42px;
+  overflow: hidden;
+  border-bottom: 1px solid #eef2f7;
 }
 
 .catalog-body {
