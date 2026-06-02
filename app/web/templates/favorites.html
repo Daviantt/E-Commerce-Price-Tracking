@@ -41,7 +41,10 @@
           </div>
         {% else %}
           {% for item in favorites %}
-          <div class="favorite-row">
+          <div
+            class="favorite-row"
+            data-product-url="{% if item.product_id %}/dashboard/product/{{ item.product_id }}{% else %}/products?q={{ item.model_key|urlencode }}{% endif %}"
+          >
             <div>
               <div class="row-name">{{ item.display_name }}</div>
               <div class="row-meta">{{ item.brand|upper }} · {{ item.model_key }} · lưu lúc {{ item.created_at }}</div>
@@ -55,8 +58,16 @@
   </div>
 
   <script>
+    document.querySelectorAll(".favorite-row").forEach(row => {
+      row.addEventListener("click", event => {
+        if (event.target.closest("button")) return;
+        window.location.href = row.dataset.productUrl;
+      });
+    });
+
     document.querySelectorAll(".removeFavorite").forEach(button => {
-      button.addEventListener("click", async () => {
+      button.addEventListener("click", async event => {
+        event.stopPropagation();
         await fetch(`/api/favorites/${button.dataset.id}`, {method: "DELETE"});
         window.location.reload();
       });

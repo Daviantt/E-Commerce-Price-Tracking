@@ -637,6 +637,16 @@ def favorites_page(request: Request):
             columns = [desc.name for desc in cur.description]
             favorites = [dict(zip(columns, row)) for row in cur.fetchall()]
 
+    products, _ = fetch_dashboard_products(limit=1000)
+    product_ids_by_key = {
+        (product["model_key"], (product["brand"] or "").lower()): product["id"]
+        for product in products
+    }
+    for favorite in favorites:
+        favorite["product_id"] = product_ids_by_key.get(
+            (favorite["model_key"], (favorite["brand"] or "").lower())
+        )
+
     return templates.TemplateResponse(
         request,
         "favorites.html",
