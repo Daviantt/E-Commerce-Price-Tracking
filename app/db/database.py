@@ -1,9 +1,11 @@
 import argparse
+import ast
 import os
 from pathlib import Path
 
 import pandas as pd
 
+from app.crawlers.common import clean_price, clean_url, normalize_price_pair
 from app.pipeline.merge_daily import extract_model_key
 
 
@@ -109,10 +111,7 @@ def clean_text(value):
 
 
 def clean_number(value):
-    value = clean_value(value)
-    if value in ("", None):
-        return None
-    return value
+    return clean_price(value)
 
 
 def clean_bool(value):
@@ -135,6 +134,29 @@ def parse_datetime(value):
     if value is None:
         return pd.Timestamp.now().to_pydatetime()
     return pd.to_datetime(value).to_pydatetime()
+
+
+def clean_url_list(value):
+    value = clean_value(value)
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [url for url in (clean_url(item) for item in value) if url]
+
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null"}:
+        return []
+
+    try:
+        parsed = ast.literal_eval(text)
+    except (SyntaxError, ValueError):
+        parsed = None
+
+    if isinstance(parsed, list):
+        return [url for url in (clean_url(item) for item in parsed) if url]
+
+    url = clean_url(text)
+    return [url] if url else []
 
 
 def row_extra_data(row, known_columns):
@@ -187,22 +209,48 @@ def import_raw_csv(path, run_id=None):
 
                 crawled_at = parse_datetime(row.get("crawled_at"))
                 model_key = extract_model_key(name)
+                current_price, original_price = normalize_price_pair(
+                    row.get("current_price"),
+                    row.get("original_price"),
+                )
+                image_url = clean_url(row.get("image_url"))
+                image_urls = clean_url_list(row.get("image_urls"))
+                if image_url and image_url not in image_urls:
+                    image_urls.insert(0, image_url)
 
                 cur.execute(
                     """
                     INSERT INTO raw_products (
                         run_id, source, source_product_id, sku, name, brand, segment,
                         current_price, original_price, stock, available, url,
-                        collection_handle, model_key, crawled_at, crawl_date,
+                        image_url, image_urls, collection_handle, model_key, crawled_at, crawl_date,
                         raw_file, extra_data
                     )
                     VALUES (
                         %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s,
-                        %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s,
                         %s, %s
                     )
-                    ON CONFLICT DO NOTHING
+                    ON CONFLICT (
+                        source,
+                        brand,
+                        COALESCE(source_product_id, ''),
+                        COALESCE(sku, ''),
+                        COALESCE(url, ''),
+                        crawled_at
+                    )
+                    DO UPDATE SET
+                        current_price = EXCLUDED.current_price,
+                        original_price = EXCLUDED.original_price,
+                        stock = EXCLUDED.stock,
+                        available = EXCLUDED.available,
+                        image_url = EXCLUDED.image_url,
+                        image_urls = EXCLUDED.image_urls,
+                        collection_handle = EXCLUDED.collection_handle,
+                        model_key = EXCLUDED.model_key,
+                        raw_file = EXCLUDED.raw_file,
+                        extra_data = EXCLUDED.extra_data
                     """,
                     (
                         run_id,
@@ -212,11 +260,13 @@ def import_raw_csv(path, run_id=None):
                         name,
                         brand,
                         clean_text(row.get("segment")),
-                        clean_number(row.get("current_price")),
-                        clean_number(row.get("original_price")),
+                        current_price,
+                        original_price,
                         clean_number(row.get("stock")),
                         clean_bool(row.get("available")),
-                        clean_text(row.get("url")),
+                        clean_url(row.get("url")),
+                        image_url,
+                        Jsonb(image_urls),
                         clean_text(row.get("collection_handle")),
                         model_key,
                         crawled_at,
@@ -243,6 +293,18 @@ def import_comparison_csv(path):
         with conn.cursor() as cur:
             for _, row in df.iterrows():
                 comparison_date = pd.to_datetime(row["ngay_crawl"]).date()
+                phongvu_current, phongvu_original = normalize_price_pair(
+                    row.get("gia_ban_phongvu"),
+                    row.get("gia_goc_phongvu"),
+                )
+                gearvn_current, gearvn_original = normalize_price_pair(
+                    row.get("gia_ban_gearvn"),
+                    row.get("gia_goc_gearvn"),
+                )
+                cellphones_current, cellphones_original = normalize_price_pair(
+                    row.get("gia_ban_cellphones"),
+                    row.get("gia_goc_cellphones"),
+                )
                 cur.execute(
                     """
                     INSERT INTO daily_price_comparisons (
@@ -250,14 +312,14 @@ def import_comparison_csv(path):
                         gia_ban_phongvu, gia_goc_phongvu, url_phongvu,
                         gia_ban_gearvn, gia_goc_gearvn, url_gearvn,
                         gia_ban_cellphones, gia_goc_cellphones, url_cellphones,
-                        so_website_co_hang, source_file
+                        image_url, so_website_co_hang, source_file
                     )
                     VALUES (
                         %s, %s, %s, %s,
                         %s, %s, %s,
                         %s, %s, %s,
                         %s, %s, %s,
-                        %s, %s
+                        %s, %s, %s
                     )
                     ON CONFLICT (comparison_date, model_key, brand)
                     DO UPDATE SET
@@ -271,6 +333,7 @@ def import_comparison_csv(path):
                         gia_ban_cellphones = EXCLUDED.gia_ban_cellphones,
                         gia_goc_cellphones = EXCLUDED.gia_goc_cellphones,
                         url_cellphones = EXCLUDED.url_cellphones,
+                        image_url = EXCLUDED.image_url,
                         so_website_co_hang = EXCLUDED.so_website_co_hang,
                         source_file = EXCLUDED.source_file,
                         updated_at = NOW()
@@ -280,15 +343,16 @@ def import_comparison_csv(path):
                         clean_text(row.get("model_key")),
                         clean_text(row.get("ten")),
                         clean_text(row.get("brand")),
-                        clean_number(row.get("gia_ban_phongvu")),
-                        clean_number(row.get("gia_goc_phongvu")),
-                        clean_text(row.get("url_phongvu")),
-                        clean_number(row.get("gia_ban_gearvn")),
-                        clean_number(row.get("gia_goc_gearvn")),
-                        clean_text(row.get("url_gearvn")),
-                        clean_number(row.get("gia_ban_cellphones")),
-                        clean_number(row.get("gia_goc_cellphones")),
-                        clean_text(row.get("url_cellphones")),
+                        phongvu_current,
+                        phongvu_original,
+                        clean_url(row.get("url_phongvu")),
+                        gearvn_current,
+                        gearvn_original,
+                        clean_url(row.get("url_gearvn")),
+                        cellphones_current,
+                        cellphones_original,
+                        clean_url(row.get("url_cellphones")),
+                        clean_url(row.get("image_url")),
                         int(clean_number(row.get("so_website_co_hang")) or 0),
                         str(path),
                     ),

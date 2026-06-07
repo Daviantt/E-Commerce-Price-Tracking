@@ -6,6 +6,8 @@ from datetime import datetime
 import pandas as pd
 import requests
 
+from app.crawlers.common import normalize_price_pair
+
 
 BASE_URL = "https://cellphones.com.vn"
 GRAPHQL_URL = "https://api.cellphones.com.vn/v2/graphql/query"
@@ -78,14 +80,18 @@ def normalize_product(item, brand):
     general = item.get("general") or {}
     filterable = item.get("filterable") or {}
     url_path = general.get("url_path")
+    current_price, original_price = normalize_price_pair(
+        filterable.get("special_price") or filterable.get("price"),
+        filterable.get("price"),
+    )
 
     return {
         "product_id": general.get("product_id"),
         "sku": general.get("sku"),
         "name": general.get("name"),
         "brand": brand,
-        "current_price": filterable.get("special_price") or filterable.get("price"),
-        "original_price": filterable.get("price"),
+        "current_price": current_price,
+        "original_price": original_price,
         "stock": filterable.get("stock"),
         "url": f"{BASE_URL}/{url_path}" if url_path else None,
         "source": "cellphones",

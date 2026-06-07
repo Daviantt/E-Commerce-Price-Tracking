@@ -5,6 +5,8 @@ from datetime import datetime
 import pandas as pd
 import requests
 
+from app.crawlers.common import clean_url, normalize_price_pair
+
 
 BASE_URL = "https://gearvn.com"
 SAVE_DIR = "D:/Data/raw"
@@ -51,6 +53,10 @@ def normalize_product(item, brand, segment, collection_handle):
     first_variant = variants[0] if variants else {}
     handle = item.get("handle")
     image_urls = extract_image_urls(item)
+    current_price, original_price = normalize_price_pair(
+        first_variant.get("price"),
+        first_variant.get("compare_at_price"),
+    )
 
     return {
         "product_id": item.get("id"),
@@ -58,15 +64,15 @@ def normalize_product(item, brand, segment, collection_handle):
         "name": item.get("title"),
         "brand": brand,
         "segment": segment,
-        "current_price": first_variant.get("price"),
-        "original_price": first_variant.get("compare_at_price"),
+        "current_price": current_price,
+        "original_price": original_price,
         "available": first_variant.get("available", item.get("available")),
         "url": f"{BASE_URL}/products/{handle}" if handle else None,
         "collection_handle": collection_handle,
         "source": "gearvn",
         "crawled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "image_url": image_urls[0] if image_urls else None,
-        "image_urls": image_urls,
+        "image_url": clean_url(image_urls[0]) if image_urls else None,
+        "image_urls": [url for url in (clean_url(url) for url in image_urls) if url],
     }
 
 

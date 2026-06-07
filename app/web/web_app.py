@@ -201,6 +201,7 @@ def product_from_record(record):
 
 
 def fetch_products_from_database(limit=80):
+    ensure_schema()
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -231,6 +232,7 @@ def fetch_products_from_database(limit=80):
                     gia_ban_cellphones,
                     gia_goc_cellphones,
                     url_cellphones,
+                    image_url,
                     so_website_co_hang
                 FROM daily_price_comparisons
                 WHERE comparison_date = %s
