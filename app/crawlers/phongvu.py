@@ -5,6 +5,8 @@ from datetime import datetime
 import pandas as pd
 import requests
 
+from app.crawlers.common import clean_url, normalize_price_pair
+
 
 API_URL = "https://discovery.tekoapis.com/api/v2/search-skus-v2"
 SAVE_DIR = "D:/Data/raw"
@@ -108,6 +110,7 @@ def normalize_product(item, brand):
         or get_nested(item, "prices", "supplierRetailPrice")
     )
 
+    current_price, original_price = normalize_price_pair(current_price, original_price)
     image_urls = extract_image_urls(item)
 
     return {
@@ -119,8 +122,8 @@ def normalize_product(item, brand):
         "url": product_url,
         "source": "phongvu",
         "crawled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "image_url": image_urls[0] if image_urls else None,
-        "image_urls": image_urls,
+        "image_url": clean_url(image_urls[0]) if image_urls else None,
+        "image_urls": [url for url in (clean_url(url) for url in image_urls) if url],
     }
 
 

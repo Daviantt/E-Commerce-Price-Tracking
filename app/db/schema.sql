@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS raw_products (
     stock NUMERIC,
     available BOOLEAN,
     url TEXT,
+    image_url TEXT,
+    image_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
     collection_handle TEXT,
     model_key TEXT,
     crawled_at TIMESTAMPTZ NOT NULL,
@@ -28,6 +30,12 @@ CREATE TABLE IF NOT EXISTS raw_products (
     extra_data JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS image_urls JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_raw_products_snapshot
 ON raw_products (
@@ -60,12 +68,16 @@ CREATE TABLE IF NOT EXISTS daily_price_comparisons (
     gia_ban_cellphones NUMERIC,
     gia_goc_cellphones NUMERIC,
     url_cellphones TEXT,
+    image_url TEXT,
     so_website_co_hang INTEGER NOT NULL DEFAULT 0,
     source_file TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (comparison_date, model_key, brand)
 );
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 CREATE INDEX IF NOT EXISTS ix_daily_comparisons_brand_date
 ON daily_price_comparisons (brand, comparison_date);

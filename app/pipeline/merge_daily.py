@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from app.crawlers.common import clean_url, normalize_price_pair
+
 
 RAW_DIR = Path("D:/Data/raw")
 MERGED_DIR = Path("D:/Data/processed")
@@ -78,6 +80,19 @@ def latest_file(source, brand):
 def read_source_file(source, brand):
     path = latest_file(source, brand)
     df = pd.read_csv(path)
+    if {"current_price", "original_price"}.issubset(df.columns):
+        prices = [
+            normalize_price_pair(current_price, original_price)
+            for current_price, original_price in zip(
+                df["current_price"], df["original_price"]
+            )
+        ]
+        df["current_price"] = [current_price for current_price, _ in prices]
+        df["original_price"] = [original_price for _, original_price in prices]
+    if "image_url" in df.columns:
+        df["image_url"] = df["image_url"].map(clean_url)
+    if "url" in df.columns:
+        df["url"] = df["url"].map(clean_url)
     df["model_key"] = df["name"].map(extract_model_key)
     df = df[df["model_key"].notna()].copy()
     df["crawl_date"] = pd.to_datetime(df["crawled_at"]).dt.date.astype(str)
@@ -150,12 +165,17 @@ def save_merged_frame(df):
 
     date_str = datetime.now().strftime("%Y%m%d")
     filename = output_dir / f"laptop_price_compare_{date_str}.csv"
-    df.to_csv(filename, index=False, encoding="utf-8-sig")
+    try:
+        df.to_csv(filename, index=False, encoding="utf-8-sig")
+    except PermissionError:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = output_dir / f"laptop_price_compare_{timestamp}.csv"
+        df.to_csv(filename, index=False, encoding="utf-8-sig")
     return filename
 
 
 def print_match_summary(df):
-    print("Tổng hợp mức độ ghép theo số website có mặt:")
+    print("Match summary by number of available websites:")
     summary = (
         df.groupby(["brand", "so_website_co_hang"])
         .size()
@@ -169,7 +189,7 @@ def merge_latest_daily_files():
     merged_df = build_all_merged_frame()
     output_file = save_merged_frame(merged_df)
     print_match_summary(merged_df)
-    print(f"Đã lưu file đối chiếu → {output_file}")
+    print(f"Saved merged comparison file: {output_file}")
     return output_file
 
 
