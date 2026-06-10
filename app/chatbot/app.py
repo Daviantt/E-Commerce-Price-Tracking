@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-
+# duong dan toi file procsessed
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -34,12 +34,12 @@ class Deal:
     model_key: str
     source: str
     store_name: str
-    original_price: float
+    previous_price: float
     current_price: float
     discount_percent: float
     link: str | None
 
-
+# kiem tra tinh dung dan cua so
 def clean_number(value):
     if value is None:
         return None
@@ -56,7 +56,7 @@ def clean_number(value):
         return None
     return number
 
-
+# lam sach du lieu chu
 def clean_text(value):
     if value is None:
         return None
@@ -70,19 +70,53 @@ def clean_text(value):
         return None
     return text
 
-
+#chuyen qua dang tien vnd
 def format_vnd(value):
     return f"{int(round(value)):,}".replace(",", ".") + " VND"
 
-
-def latest_processed_csv():
+def processed_csv_files():
+    files = []
     for directory in (PROCESSED_DIR, FALLBACK_PROCESSED_DIR):
-        files = sorted(Path(directory).glob("laptop_price_compare_*.csv"))
-        if files:
-            return files[-1]
+        files.extend(Path(directory).glob("laptop_price_compare_*.csv"))
+    return sorted(set(files))
+
+
+# lay file processed moi nhat
+def latest_processed_csv():
+    files = processed_csv_files()
+    if files:
+        return files[-1]
     raise FileNotFoundError(
         "Khong tim thay file laptop_price_compare_*.csv trong D:/Data/processed "
         "hoac data/output. Hay chay: python run_daily.py"
+    )
+
+
+def previous_processed_csv(current_csv_path=None):
+    files = processed_csv_files()
+    if not current_csv_path:
+        if len(files) < 2:
+            raise FileNotFoundError(
+                "Khong tim thay file CSV ngay hom truoc de so sanh gia. "
+                "Can it nhat 2 file laptop_price_compare_*.csv."
+            )
+        return files[-2]
+
+    if current_csv_path:
+        current_csv_path = Path(current_csv_path).resolve()
+        for index, path in enumerate(files):
+            if path.resolve() == current_csv_path:
+                if index == 0:
+                    break
+                return files[index - 1]
+
+        fallback_files = [path for path in files if path.resolve() != current_csv_path]
+        if fallback_files:
+            return fallback_files[-1]
+
+    raise FileNotFoundError(
+        "Khong tim thay file CSV ngay hom truoc de so sanh gia. "
+        "Can it nhat 2 file laptop_price_compare_*.csv."
     )
 
 
@@ -93,27 +127,38 @@ def load_comparison_frame(csv_path=None):
     return path, pd.read_csv(path)
 
 
-def discount_percent(original_price, current_price):
-    if original_price is None or current_price is None:
+def price_drop_percent(previous_price, current_price):
+    if previous_price is None or current_price is None:
         return None
-    if current_price >= original_price:
+    if current_price >= previous_price:
         return None
-    return (1 - current_price / original_price) * 100
+    return (1 - current_price / previous_price) * 100
 
 
-def build_deals(df, threshold=DEFAULT_THRESHOLD):
-    deals = []
+def build_previous_row_map(df):
+    rows = {}
     for _, row in df.iterrows():
+        model_key = clean_text(row.get("model_key"))
+        if model_key:
+            rows[model_key] = row
+    return rows
+
+
+def build_deals(current_df, previous_df, threshold=DEFAULT_THRESHOLD):
+    previous_rows = build_previous_row_map(previous_df)
+    deals = []
+    for _, row in current_df.iterrows():
         product_name = clean_text(row.get("ten")) or clean_text(row.get("display_name"))
         brand = clean_text(row.get("brand")) or ""
         model_key = clean_text(row.get("model_key")) or ""
-        if not product_name:
+        previous_row = previous_rows.get(model_key)
+        if not product_name or previous_row is None:
             continue
 
         for source, store_name in SOURCES.items():
             current_price = clean_number(row.get(f"gia_ban_{source}"))
-            original_price = clean_number(row.get(f"gia_goc_{source}"))
-            discount = discount_percent(original_price, current_price)
+            previous_price = clean_number(previous_row.get(f"gia_ban_{source}"))
+            discount = price_drop_percent(previous_price, current_price)
             if discount is None or discount < threshold:
                 continue
 
@@ -124,16 +169,16 @@ def build_deals(df, threshold=DEFAULT_THRESHOLD):
                     model_key=model_key,
                     source=source,
                     store_name=store_name,
-                    original_price=original_price,
+                    previous_price=previous_price,
                     current_price=current_price,
                     discount_percent=discount,
                     link=clean_text(row.get(f"url_{source}")),
                 )
             )
-
+    #tra ve danh sach phan tram giam gia cua laptop tu cao den thap
     return sorted(deals, key=lambda deal: deal.discount_percent, reverse=True)
 
-
+    
 def build_telegram_message(deal):
     product_name = html.escape(deal.product_name)
     store_name = html.escape(deal.store_name)
@@ -147,13 +192,14 @@ def build_telegram_message(deal):
     )
 
     return (
-        f"<b>CANH BAO DEAL LAPTOP - GIAM {deal.discount_percent:.1f}%</b>\n\n"
+        f"<b>CANH BAO GIA LAPTOP GIAM {deal.discount_percent:.1f}% SO VOI HOM QUA</b>\n\n"
         f"<b>San pham:</b> {product_name}\n"
         f"<b>Brand:</b> {brand}\n"
         f"<b>Model:</b> {model_key}\n"
         f"<b>Cua hang:</b> {store_name}\n"
-        f"<b>Gia goc:</b> {format_vnd(deal.original_price)}\n"
-        f"<b>Gia hien tai:</b> {format_vnd(deal.current_price)}"
+        f"<b>Gia hom qua:</b> {format_vnd(deal.previous_price)}\n"
+        f"<b>Gia hom nay:</b> {format_vnd(deal.current_price)}\n"
+        f"<b>Muc giam:</b> {format_vnd(deal.previous_price - deal.current_price)}"
         f"{detail_line}"
     )
 
@@ -208,6 +254,10 @@ def main():
         help="Duong dan CSV processed. Mac dinh lay file laptop_price_compare_*.csv moi nhat.",
     )
     parser.add_argument(
+        "--previous-csv",
+        help="Duong dan CSV processed ngay hom truoc. Mac dinh lay file lien truoc file hien tai.",
+    )
+    parser.add_argument(
         "--threshold",
         type=float,
         default=get_env_float("TELEGRAM_ALERT_THRESHOLD", DEFAULT_THRESHOLD),
@@ -226,9 +276,12 @@ def main():
     )
     args = parser.parse_args()
 
-    csv_path, df = load_comparison_frame(args.csv)
-    deals = build_deals(df, threshold=args.threshold)[: args.limit]
-    print(f"CSV: {csv_path}")
+    csv_path, current_df = load_comparison_frame(args.csv)
+    previous_csv = Path(args.previous_csv) if args.previous_csv else previous_processed_csv(csv_path)
+    previous_csv_path, previous_df = load_comparison_frame(previous_csv)
+    deals = build_deals(current_df, previous_df, threshold=args.threshold)[: args.limit]
+    print(f"CSV hom nay: {csv_path}")
+    print(f"CSV hom qua: {previous_csv_path}")
     print(f"Threshold: {args.threshold:.1f}%")
     print(f"Deals found: {len(deals)}")
 
