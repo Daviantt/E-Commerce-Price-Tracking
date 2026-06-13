@@ -3,55 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard sản phẩm - LapoAnalytics</title>
-  <link rel="stylesheet" href="/static/app.css" />
+  <title>Dashboard sản phẩm - LapWise</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260613-i18n2" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="/">
-        <div class="logo">LA</div>
+        <div class="logo">LW</div>
         <div>
-          <div class="brand-title">LapoAnalytics</div>
+          <div class="brand-title">LapWise</div>
           <div class="brand-subtitle">Price intelligence</div>
         </div>
       </a>
 
       <nav class="nav">
-        <a class="nav-link" href="/">⌂ Trang chủ</a>
-        <a class="nav-link" href="/products">▦ Danh sách sản phẩm</a>
-        <a class="nav-link active" href="/dashboard">◈ Dashboard sản phẩm</a>
-        <a class="nav-link" href="/favorites">♥ Sản phẩm yêu thích</a>
-        <div class="side-label" style="margin:14px 12px 4px">Thương hiệu</div>
+        <a class="nav-link" href="/" data-i18n="navHome">⌂ Trang chủ</a>
+        <a class="nav-link" href="/products" data-i18n="navProducts">▦ Danh sách sản phẩm</a>
+        <a class="nav-link active" href="/dashboard" data-i18n="navDashboard">◈ Dashboard sản phẩm</a>
+        <a class="nav-link" href="/favorites" data-i18n="navFavorites">♥ Sản phẩm yêu thích</a>
+        <div class="side-label" style="margin:14px 12px 4px" data-i18n="sideBrands">Thương hiệu</div>
         {% for brand in ["acer", "asus", "msi"] %}
         <a class="brand-filter" href="/products?brand={{ brand }}">▸ {{ brand|upper }}</a>
         {% endfor %}
       </nav>
 
       <div class="side-section" style="margin-top:auto">
+        <button id="dashboardLanguageToggle" class="language-toggle sidebar-language-toggle" type="button" data-language-toggle aria-label="Switch language">
+          <span data-language-label>Language</span>
+          <strong data-language-code>VI</strong>
+        </button>
         {% if user %}
-          <div class="row-meta">Đang đăng nhập</div>
+          <div class="row-meta auth-status" data-i18n="loggedIn">Đang đăng nhập</div>
           <strong>{{ user.display_name or user.email }}</strong>
-          <button id="logoutButton" class="btn btn-danger" style="width:100%;margin-top:12px">Đăng xuất</button>
+          <button id="logoutButton" class="btn btn-danger" style="width:100%;margin-top:12px" data-i18n="logout">Đăng xuất</button>
         {% else %}
-          <a class="btn btn-primary" style="width:100%;display:block;text-align:center" href="/login">Đăng nhập</a>
+          <a class="btn btn-primary" style="width:100%;display:block;text-align:center" href="/login" data-i18n="login">Đăng nhập</a>
         {% endif %}
       </div>
     </aside>
 
     <main class="main product-dashboard-main">
-      <a class="btn dashboard-back-button" href="/products">← Quay lại danh sách</a>
+      <a class="btn dashboard-back-button" href="/products" data-i18n="backToProducts">← Quay lại danh sách</a>
       <section class="product-toolbar">
         <div>
-          <div class="eyebrow">Product dashboard</div>
-          <h1 class="page-title">Dashboard sản phẩm</h1>
+          <div class="eyebrow" data-i18n="productDashboardEyebrow">Product dashboard</div>
+          <h1 class="page-title" data-i18n="productDashboardTitle">Dashboard sản phẩm</h1>
         </div>
       </section>
 
       {% if not selected %}
       <section class="card card-pad">
-        <h2>Chưa có dữ liệu</h2>
-        <p class="muted">Hãy import dữ liệu hoặc chạy crawler trước.</p>
+        <h2 data-i18n="noDataTitle">Chưa có dữ liệu</h2>
+        <p class="muted" data-i18n="noDataCopy">Hãy import dữ liệu hoặc chạy crawler trước.</p>
       </section>
       {% else %}
       <div class="grid">
@@ -63,7 +67,7 @@
                 <h2 id="productName" class="product-title">{{ selected.display_name }}</h2>
                 <div id="productMeta" class="muted">Model key: {{ selected.model_key }}</div>
               </div>
-              <button id="favoriteButton" class="btn" data-product-id="{{ selected.id }}">♡ Lưu yêu thích</button>
+              <button id="favoriteButton" class="btn" data-product-id="{{ selected.id }}" data-i18n="saveFavorite">♡ Lưu yêu thích</button>
             </div>
 
             <div class="hero-placeholder">
@@ -72,22 +76,30 @@
                     {% else %}
                   <div>
                       <div class="laptop-icon"></div>
-                       <div>Ảnh sản phẩm sẽ được thêm khi có crawler hình ảnh.</div>
+                       <div data-i18n="productImagePending">Ảnh sản phẩm sẽ được thêm khi có crawler hình ảnh.</div>
                   </div>
                     {% endif %}
             </div>
 
             <div class="chat-wide-wrap">
               <div class="panel chat-consultant-panel">
-                <div class="panel-title">Chat tư vấn sản phẩm <span class="badge badge-green">Beta</span></div>
+                <div class="panel-title"><span data-i18n="chatPanelTitle">Chat tư vấn sản phẩm</span> <span class="badge badge-green">Beta</span></div>
                 <div id="chatBox" class="chat-box">
-                  <div class="chat-message">
-                    Mình sẽ không tự bịa thông số. Nếu dữ liệu chưa có cấu hình/kho, mình sẽ nói rõ phần nào chưa chắc.
+                  <div class="chat-message" data-i18n="chatWelcome">
+                    xin chào tôi có thể giúp gì cho bạn?
                   </div>
                 </div>
+                <div class="chat-suggestions" aria-label="Câu hỏi gợi ý" data-i18n-aria-label="chatSuggestionsLabel">
+                  <button type="button" data-icon="₫" data-message="Giá rẻ nhất ở đâu?" data-i18n-message="chatBestQuestion" data-i18n="chatBestPrice">Giá rẻ nhất</button>
+                  <button type="button" data-icon="✓" data-message="Có nên mua hôm nay không?" data-i18n-message="chatBuyQuestion" data-i18n="chatBuyToday">Có nên mua?</button>
+                  <button type="button" data-icon="↗" data-message="Xu hướng giá gần đây thế nào?" data-i18n-message="chatTrendQuestion" data-i18n="chatTrend">Xu hướng giá</button>
+                  <button type="button" data-icon="⇄" data-message="So sánh giá các cửa hàng" data-i18n-message="chatCompareQuestion" data-i18n="chatCompareShops">So sánh shop</button>
+                  <button type="button" data-icon="CPU" data-message="Cấu hình máy này thế nào?" data-i18n-message="chatConfigQuestion" data-i18n="chatConfig">Cấu hình</button>
+                  <button type="button" data-icon="●" data-message="Máy này còn hàng không?" data-i18n-message="chatStockQuestion" data-i18n="chatStock">Kho hàng</button>
+                </div>
                 <form id="chatForm" class="chat-form">
-                  <input id="chatInput" class="input" placeholder="Hỏi: máy này giá ở đâu rẻ nhất?" />
-                  <button class="btn btn-primary">Gửi</button>
+                  <input id="chatInput" class="input" placeholder="Hỏi: máy này giá ở đâu rẻ nhất?" data-i18n-placeholder="chatPlaceholder" />
+                  <button id="chatSubmit" class="btn btn-primary" data-i18n="send">Gửi</button>
                 </form>
             </div>
           </div>
@@ -96,31 +108,35 @@
         <aside class="span-5 stack">
           <div class="metric-grid">
             <div class="card card-pad">
-              <div class="metric-label">Giá thấp nhất</div>
+              <div class="metric-label" data-i18n="lowestPrice">Giá thấp nhất</div>
               <div id="lowestPrice" class="metric-value">{{ selected.lowest_price|vnd }}</div>
               <div id="bestSource" class="row-meta">{{ selected.best_source or "—" }}</div>
             </div>
             <div class="card card-pad">
-              <div class="metric-label">Giá trung bình</div>
+              <div class="metric-label" data-i18n="averagePrice">Giá trung bình</div>
               <div id="averagePrice" class="metric-value">{{ selected.average_price|vnd }}</div>
-              <div class="row-meta">Tính trên website có kinh doanh</div>
+              <div class="row-meta" data-i18n="averagePriceCopy">Tính trên website có kinh doanh</div>
             </div>
           </div>
 
           <div class="card">
             <div class="card-header soft">
-              <strong>So sánh giá đại lý</strong>
-              <span class="muted">VND</span>
+              <strong data-i18n="dealerCompare">So sánh giá đại lý</strong>
+              <div id="currencySwitcher" class="currency-switcher" aria-label="Đổi tiền tệ" data-i18n-aria-label="currencySwitcherLabel">
+                <button type="button" class="active" data-currency="VND">VND</button>
+                <button type="button" data-currency="USD">USD</button>
+                <button type="button" data-currency="EUR">EUR</button>
+                <button type="button" data-currency="GBP">GBP</button>
+              </div>
             </div>
             <div id="priceList"></div>
           </div>
 
           <div class="card card-pad">
             <div class="card-header" style="padding:0 0 16px;border-bottom:0">
-              <strong>Xu hướng giá</strong>
-              <span class="muted">Theo dữ liệu đã crawl</span>
+              <strong data-i18n="priceTrend">Xu hướng giá</strong>
             </div>
-            <div id="historyBars" class="bars"></div>
+            <div id="historyBars" class="history-panel"></div>
           </div>
         </aside>
       </div>
@@ -128,14 +144,30 @@
     </main>
   </div>
 
+  <script src="/static/app-language.js?v=20260613-i18n2"></script>
   <script>
     const isLoggedIn = {{ "true" if user else "false" }};
     let selectedProduct = {{ selected|tojson }};
     const initialHistory = {{ history|tojson }};
+    let currentHistory = initialHistory;
+    let selectedCurrency = "VND";
+    const t = (key) => window.LapWiseLanguage?.t(key) || key;
+    const currencyRates = {
+      VND: {rate: 1, currency: "VND", locale: "vi-VN", maximumFractionDigits: 0},
+      USD: {rate: 25000, currency: "USD", locale: "en-US", maximumFractionDigits: 2},
+      EUR: {rate: 27000, currency: "EUR", locale: "de-DE", maximumFractionDigits: 2},
+      GBP: {rate: 31500, currency: "GBP", locale: "en-GB", maximumFractionDigits: 2},
+    };
 
     const vnd = (value) => {
       if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
-      return new Intl.NumberFormat("vi-VN").format(Number(value)) + "₫";
+      const config = currencyRates[selectedCurrency] || currencyRates.VND;
+      const amount = Number(value) / config.rate;
+      return new Intl.NumberFormat(config.locale, {
+        style: "currency",
+        currency: config.currency,
+        maximumFractionDigits: config.maximumFractionDigits,
+      }).format(amount);
     };
 
     function sourceAbbr(label) {
@@ -145,9 +177,23 @@
       return label.slice(0, 3).toUpperCase();
     }
 
+    function priceChangeBadge(price) {
+      const percent = Number(price.change_percent);
+      if (!Number.isFinite(percent)) {
+        return `<span class="price-change price-change-flat">—</span>`;
+      }
+      if (Math.abs(percent) < 0.05) {
+        return `<span class="price-change price-change-flat">0%</span>`;
+      }
+      const isDown = percent < 0;
+      const sign = isDown ? "-" : "+";
+      return `<span class="price-change ${isDown ? "price-change-down" : "price-change-up"}">${sign}${Math.abs(percent).toFixed(1)}%</span>`;
+    }
+
     function renderProduct(product, history = []) {
       if (!product) return;
       selectedProduct = product;
+      currentHistory = history || [];
       document.querySelector("#productBrand").textContent = product.brand;
       document.querySelector("#productName").textContent = product.display_name;
       document.querySelector("#productMeta").textContent = `Model key: ${product.model_key}`;
@@ -166,12 +212,15 @@
             <div class="source-logo ${price.available ? "" : "source-logo-disabled"}">${sourceAbbr(price.label)}</div>
             <div>
               <div class="row-name">${price.label}</div>
-              <div class="row-meta">${price.available ? (isBest ? "Giá tốt nhất hiện tại" : "Đang kinh doanh") : "Website này không kinh doanh model này"}</div>
+              <div class="row-meta">${price.available ? (isBest ? t("dealerBestCurrent") : t("dealerAvailable")) : t("dealerUnavailable")}</div>
             </div>
           </div>
           <div class="row-price">
-            <div class="mono"><strong>${price.available ? vnd(price.current_price) : "Không kinh doanh"}</strong></div>
-            ${isBest ? '<div class="badge badge-green">Rẻ nhất</div>' : ''}
+            <div class="dealer-price-badges">
+              ${price.available ? priceChangeBadge(price) : ""}
+              ${isBest ? `<span class="badge badge-green">${t("badgeLowest")}</span>` : ''}
+            </div>
+            <strong class="dealer-price-value">${price.available ? vnd(price.current_price) : t("notAvailable")}</strong>
           </div>
         `;
         if (!price.available) {
@@ -186,34 +235,144 @@
     function renderHistory(history) {
       const target = document.querySelector("#historyBars");
       if (!history || history.length === 0) {
-        target.innerHTML = `<div class="panel panel-dashed" style="width:100%;text-align:center;color:var(--muted)">Chưa đủ lịch sử giá để vẽ biểu đồ</div>`;
+        target.innerHTML = `<div class="panel panel-dashed history-empty">${t("historyEmpty")}</div>`;
         return;
       }
       const prices = history.map(item => Number(item.price));
       const min = Math.min(...prices);
       const max = Math.max(...prices);
-      target.innerHTML = history.map(item => {
-        const height = max === min ? 60 : 25 + ((Number(item.price) - min) / (max - min)) * 70;
-        return `<div class="bar" title="${item.date}: ${vnd(item.price)}" style="height:${height}%"></div>`;
+      const first = history[0];
+      const latest = history[history.length - 1];
+      const previous = history.length > 1 ? history[history.length - 2] : null;
+      const latestDelta = previous ? Number(latest.price) - Number(previous.price) : 0;
+      const latestPercent = previous && Number(previous.price) ? Math.abs(latestDelta) / Number(previous.price) * 100 : 0;
+      const overallDelta = Number(latest.price) - Number(first.price);
+
+      const deltaClass = (delta) => delta < 0 ? "history-good" : (delta > 0 ? "history-bad" : "history-neutral");
+      const deltaText = (delta) => {
+        if (!delta) return "0₫";
+        return `${delta > 0 ? "+" : "−"}${vnd(Math.abs(delta))}`;
+      };
+      const trendText = latestDelta < 0
+        ? `${t("decrease")} ${vnd(Math.abs(latestDelta))} (${latestPercent.toFixed(1)}%)`
+        : (latestDelta > 0 ? `${t("increase")} ${vnd(latestDelta)} (${latestPercent.toFixed(1)}%)` : t("unchanged"));
+
+      const startIndex = Math.max(0, history.length - 6);
+      const recent = history.slice(startIndex);
+      const rows = recent.map((item, index) => {
+        return `
+          <div class="history-table-row">
+            <span>${item.date}</span>
+            <strong>${vnd(item.price)}</strong>
+            <em class="${deltaClass(index + startIndex > 0 ? Number(item.price) - Number(history[index + startIndex - 1].price) : 0)}">
+              ${index + startIndex > 0 ? deltaText(Number(item.price) - Number(history[index + startIndex - 1].price)) : "—"}
+            </em>
+          </div>
+        `;
       }).join("");
+
+      target.innerHTML = `
+        <div class="history-overview">
+          <div class="history-metric">
+            <span>${t("currentPrice")}</span>
+            <strong>${vnd(latest.price)}</strong>
+            <small>${latest.date}</small>
+          </div>
+          <div class="history-metric">
+            <span>${t("latestMovement")}</span>
+            <strong class="${deltaClass(latestDelta)}">${trendText}</strong>
+            <small>${t("comparedWith")} ${previous ? previous.date : t("previousPoint")}</small>
+          </div>
+        </div>
+        <div class="history-range">
+          <div>
+            <span>${t("fromStart")}</span>
+            <strong class="${deltaClass(overallDelta)}">${deltaText(overallDelta)}</strong>
+          </div>
+          <div>
+            <span>${t("historyLow")}</span>
+            <strong>${vnd(min)}</strong>
+          </div>
+          <div>
+            <span>${t("historyHigh")}</span>
+            <strong>${vnd(max)}</strong>
+          </div>
+        </div>
+        <div class="history-table">
+          <div class="history-table-head">
+            <span>${t("date")}</span>
+            <span>${t("lowestPriceHeader")}</span>
+            <span>${t("change")}</span>
+          </div>
+          ${rows}
+        </div>
+      `;
+    }
+
+    function appendChatMessage(message, className = "") {
+      const chatBox = document.querySelector("#chatBox");
+      const node = document.createElement("div");
+      node.className = `chat-message ${className}`.trim();
+      node.textContent = message;
+      chatBox.appendChild(node);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return node;
+    }
+
+    async function sendChatMessage(message) {
+      if (!message || !selectedProduct) return;
+      const input = document.querySelector("#chatInput");
+      const submit = document.querySelector("#chatSubmit");
+      appendChatMessage(message, "chat-user");
+      input.value = "";
+      input.disabled = true;
+      submit.disabled = true;
+      const loading = appendChatMessage(t("chatLoading"), "chat-loading");
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            product_id: selectedProduct.id,
+            message,
+            language: window.LapWiseLanguage?.get() || "vi",
+          })
+        });
+        const payload = await response.json();
+        loading.remove();
+        appendChatMessage(response.ok ? payload.answer : (payload.detail || t("chatFallback")), response.ok ? "" : "chat-error");
+      } catch (error) {
+        loading.remove();
+        appendChatMessage(t("chatConnectError"), "chat-error");
+      } finally {
+        input.disabled = false;
+        submit.disabled = false;
+        input.focus();
+      }
     }
 
     document.querySelector("#chatForm")?.addEventListener("submit", async (event) => {
       event.preventDefault();
       const input = document.querySelector("#chatInput");
       const message = input.value.trim();
-      if (!message || !selectedProduct) return;
-      const chatBox = document.querySelector("#chatBox");
-      chatBox.insertAdjacentHTML("beforeend", `<div class="chat-message chat-user">${message}</div>`);
-      input.value = "";
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({product_id: selectedProduct.id, message})
+      await sendChatMessage(message);
+    });
+
+    document.querySelectorAll(".chat-suggestions button").forEach(button => {
+      button.addEventListener("click", async () => {
+        await sendChatMessage(button.dataset.message);
       });
-      const payload = await response.json();
-      chatBox.insertAdjacentHTML("beforeend", `<div class="chat-message">${payload.answer}</div>`);
-      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    document.querySelectorAll("#currencySwitcher button").forEach(button => {
+      button.addEventListener("click", () => {
+        selectedCurrency = button.dataset.currency;
+        document.querySelectorAll("#currencySwitcher button").forEach(item => {
+          item.classList.toggle("active", item === button);
+        });
+        renderProduct(selectedProduct, currentHistory);
+      });
     });
 
     document.querySelector("#favoriteButton")?.addEventListener("click", async () => {
@@ -227,12 +386,16 @@
         body: JSON.stringify({product_id: selectedProduct.id})
       });
       const data = await response.json();
-      alert(response.ok ? "Đã lưu sản phẩm yêu thích." : (data.detail || "Không lưu được."));
+      alert(response.ok ? t("favoriteSaved") : (data.detail || t("favoriteSaveError")));
     });
 
     document.querySelector("#logoutButton")?.addEventListener("click", async () => {
       await fetch("/api/logout", {method: "POST"});
       window.location.href = "/";
+    });
+
+    window.addEventListener("lapwise:languagechange", () => {
+      renderProduct(selectedProduct, currentHistory);
     });
 
     renderProduct(selectedProduct, initialHistory);

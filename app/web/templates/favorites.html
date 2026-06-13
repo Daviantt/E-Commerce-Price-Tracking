@@ -3,68 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yêu thích - LapoAnalytics</title>
-  <link rel="stylesheet" href="/static/app.css" />
+  <title>Yêu thích - LapWise</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260613-i18n2" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="/">
-        <div class="logo">LA</div>
+        <div class="logo">LW</div>
         <div>
-          <div class="brand-title">LapoAnalytics</div>
+          <div class="brand-title">LapWise</div>
           <div class="brand-subtitle">Favorites</div>
         </div>
       </a>
       <nav class="nav">
-        <a class="nav-link" href="/dashboard">▦ Dashboard</a>
-        <a class="nav-link active" href="/favorites">♥ Sản phẩm yêu thích</a>
-        <a class="nav-link" href="/">⌂ Trang chủ</a>
+        <a class="nav-link" href="/dashboard" data-i18n="navDashboard">▦ Dashboard</a>
+        <a class="nav-link active" href="/favorites" data-i18n="navFavorites">♥ Sản phẩm yêu thích</a>
+        <a class="nav-link" href="/" data-i18n="navHome">⌂ Trang chủ</a>
       </nav>
+      <div class="side-section" style="margin-top:auto">
+        <button id="favoritesLanguageToggle" class="language-toggle sidebar-language-toggle" type="button" data-language-toggle aria-label="Switch language">
+          <span data-language-label>Language</span>
+          <strong data-language-code>VI</strong>
+        </button>
+      </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
         <div>
-          <div class="eyebrow">Saved products</div>
-          <h1 class="page-title">Sản phẩm yêu thích</h1>
-          <p class="muted">Các model bạn đã lưu để theo dõi sau.</p>
+          <div class="eyebrow" data-i18n="savedProductsEyebrow">Saved products</div>
+          <h1 class="page-title" data-i18n="favoritesTitle">Sản phẩm yêu thích</h1>
+          <p class="muted" data-i18n="favoritesCopy">Các model bạn đã lưu để theo dõi sau.</p>
         </div>
-        <a class="btn btn-primary" href="/dashboard">Quay lại dashboard</a>
+        <a class="btn btn-primary" href="/dashboard" data-i18n="backToDashboard">Quay lại dashboard</a>
       </header>
 
-      <section class="card">
-        {% if not favorites %}
-          <div class="card-pad">
-            <h2>Chưa có sản phẩm yêu thích</h2>
-            <p class="muted">Vào dashboard, chọn model và bấm “Lưu yêu thích”.</p>
-          </div>
-        {% else %}
+      {% if not favorites %}
+        <section class="card card-pad">
+          <h2 data-i18n="noFavoritesTitle">Chưa có sản phẩm yêu thích</h2>
+          <p class="muted" data-i18n="noFavoritesCopy">Vào dashboard, chọn model và bấm “Lưu yêu thích”.</p>
+        </section>
+      {% else %}
+        <section class="products-grid favorites-grid">
           {% for item in favorites %}
-          <div
-            class="favorite-row"
-            data-product-url="{% if item.product_id %}/dashboard/product/{{ item.product_id }}{% else %}/products?q={{ item.model_key|urlencode }}{% endif %}"
-          >
-            <div>
-              <div class="row-name">{{ item.display_name }}</div>
-              <div class="row-meta">{{ item.brand|upper }} · {{ item.model_key }} · lưu lúc {{ item.created_at }}</div>
-            </div>
-            <button class="btn btn-danger removeFavorite" data-id="{{ item.id }}">Bỏ lưu</button>
-          </div>
+          <article class="catalog-card favorite-product-card">
+            <a
+              class="catalog-link"
+              href="{% if item.product_id %}/dashboard/product/{{ item.product_id }}{% else %}/products?q={{ item.model_key|urlencode }}{% endif %}"
+            >
+              <div class="catalog-image-slot">
+                {% if item.image_url %}
+                  <img src="{{ item.image_url }}" alt="{{ item.display_name }}" loading="lazy">
+                {% else %}
+                  <span>▧</span>
+                {% endif %}
+              </div>
+              <div class="catalog-body">
+                <div class="badge">{{ item.brand|upper }}</div>
+                <h2>{{ item.display_name }}</h2>
+                <p class="muted">Model key: {{ item.model_key }}</p>
+                <div class="catalog-meta">
+                  <div>
+                    <span data-i18n="priceFrom">Giá từ</span>
+                    <strong>{{ item.lowest_price|vnd }}</strong>
+                  </div>
+                  <div>
+                    <span data-i18n="bestRetailer">Tốt nhất</span>
+                    <strong>{{ item.best_source or "—" }}</strong>
+                  </div>
+                </div>
+              </div>
+            </a>
+            <button class="favorite-card-button favorite-remove-button removeFavorite" data-id="{{ item.id }}" data-i18n="removeSaved">Bỏ lưu</button>
+          </article>
           {% endfor %}
-        {% endif %}
-      </section>
+        </section>
+      {% endif %}
     </main>
   </div>
 
+  <script src="/static/app-language.js?v=20260613-i18n2"></script>
   <script>
-    document.querySelectorAll(".favorite-row").forEach(row => {
-      row.addEventListener("click", event => {
-        if (event.target.closest("button")) return;
-        window.location.href = row.dataset.productUrl;
-      });
-    });
-
     document.querySelectorAll(".removeFavorite").forEach(button => {
       button.addEventListener("click", async event => {
         event.stopPropagation();

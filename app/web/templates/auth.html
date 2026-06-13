@@ -3,47 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ title }} - LapoAnalytics</title>
-  <link rel="stylesheet" href="/static/app.css" />
+  <title>{{ title }} - LapWise</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260613-i18n2" />
 </head>
 <body>
   <main class="auth-page">
     <section class="card auth-card card-pad">
-      <a class="brand" href="/" style="border:0;padding:0;height:auto;margin-bottom:24px">
-        <div class="logo">LA</div>
-        <div>
-          <div class="brand-title">LapoAnalytics</div>
-          <div class="brand-subtitle">Laptop price intelligence</div>
-        </div>
-      </a>
+      <div class="auth-card-head">
+        <a class="brand auth-brand" href="/">
+          <div class="logo">LW</div>
+          <div>
+            <div class="brand-title">LapWise</div>
+            <div class="brand-subtitle">Laptop price intelligence</div>
+          </div>
+        </a>
+        <button id="authLanguageToggle" class="language-toggle" type="button" data-language-toggle aria-label="Switch language">
+          <span data-language-label>Language</span>
+          <strong data-language-code>VI</strong>
+        </button>
+      </div>
 
-      <div class="eyebrow">{{ mode }}</div>
-      <h1 class="page-title">{{ title }}</h1>
-      <p class="muted">{{ subtitle }}</p>
+      <div class="eyebrow" data-i18n="{% if mode == 'register' %}authRegisterMode{% else %}authLoginMode{% endif %}">{{ mode }}</div>
+      <h1 class="page-title" data-i18n="{% if mode == 'register' %}authRegisterTitle{% else %}authLoginTitle{% endif %}">{{ title }}</h1>
+      <p class="muted" data-i18n="{% if mode == 'register' %}authRegisterSubtitle{% else %}authLoginSubtitle{% endif %}">{{ subtitle }}</p>
 
       <form id="authForm" class="form-stack" style="margin-top:20px">
         {% if mode == "register" %}
-          <input class="input" name="display_name" placeholder="Tên hiển thị" />
+          <input class="input" name="display_name" placeholder="Tên hiển thị" data-i18n-placeholder="authDisplayName" />
         {% endif %}
-        <input class="input" name="email" type="email" placeholder="Email" required />
-        <input class="input" name="password" type="password" placeholder="Mật khẩu" required />
-        <button class="btn btn-primary" type="submit">{{ button }}</button>
+        <input class="input" name="email" type="email" placeholder="Email" data-i18n-placeholder="authEmail" required />
+        <input class="input" name="password" type="password" placeholder="Mật khẩu" data-i18n-placeholder="authPassword" required />
+        <button class="btn btn-primary" type="submit" data-i18n="{% if mode == 'register' %}authRegisterButton{% else %}authLoginButton{% endif %}">{{ button }}</button>
       </form>
 
       <div id="message"></div>
 
       <p class="muted" style="margin-top:18px">
         {% if mode == "register" %}
-          Đã có tài khoản? <a href="/login" style="color:var(--blue);font-weight:800">Đăng nhập</a>
+          <span data-i18n="authHasAccount">Đã có tài khoản?</span> <a href="/login" style="color:var(--blue);font-weight:800" data-i18n="authLoginLink">Đăng nhập</a>
         {% else %}
-          Chưa có tài khoản? <a href="/register" style="color:var(--blue);font-weight:800">Tạo tài khoản</a>
+          <span data-i18n="authNoAccount">Chưa có tài khoản?</span> <a href="/register" style="color:var(--blue);font-weight:800" data-i18n="authRegisterLink">Tạo tài khoản</a>
         {% endif %}
       </p>
     </section>
   </main>
 
+  <script src="/static/app-language.js?v=20260613-i18n2"></script>
   <script>
     const mode = "{{ mode }}";
+    const t = (key) => window.LapWiseLanguage?.t(key) || key;
     document.querySelector("#authForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       const form = new FormData(event.target);
@@ -57,11 +65,11 @@
       const message = document.querySelector("#message");
       if (!response.ok) {
         message.className = "error";
-        message.textContent = data.detail || "Không thể xử lý yêu cầu.";
+        message.textContent = data.detail || t("authProcessingError");
         return;
       }
       message.className = "success";
-      message.textContent = "Thành công. Đang chuyển hướng...";
+      message.textContent = t("authSuccess");
       window.location.href = "/dashboard";
     });
   </script>

@@ -2,6 +2,7 @@ import argparse
 import html
 import math
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,7 +15,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.db.database import FALLBACK_PROCESSED_DIR, PROCESSED_DIR, load_env_file
+from app.db.database import (
+    FALLBACK_PROCESSED_DIR,
+    PROCESSED_DIR,
+    get_connection,
+    load_env_file,
+)
 
 
 SOURCES = {
@@ -23,8 +29,9 @@ SOURCES = {
     "cellphones": "CellphoneS",
 }
 
-DEFAULT_THRESHOLD = 10.0
+DEFAULT_THRESHOLD = 0.0
 DEFAULT_LIMIT = 20
+COMPARISON_FILE_RE = re.compile(r"^laptop_price_compare_(\d{8})(?:_\d{6})?\.csv$")
 
 
 @dataclass
@@ -70,15 +77,34 @@ def clean_text(value):
         return None
     return text
 
+
+def product_key(model_key, brand):
+    model_key = (clean_text(model_key) or "").strip()
+    brand = (clean_text(brand) or "").strip().lower()
+    return (model_key, brand)
+
+
 #chuyen qua dang tien vnd
 def format_vnd(value):
     return f"{int(round(value)):,}".replace(",", ".") + " VND"
+
+
+def comparison_file_sort_key(path):
+    path = Path(path)
+    match = COMPARISON_FILE_RE.match(path.name)
+    date_key = match.group(1) if match else "00000000"
+    try:
+        primary_dir = path.parent.resolve() == PROCESSED_DIR.resolve()
+    except OSError:
+        primary_dir = False
+    return (date_key, 1 if primary_dir else 0, path.name, str(path))
+
 
 def processed_csv_files():
     files = []
     for directory in (PROCESSED_DIR, FALLBACK_PROCESSED_DIR):
         files.extend(Path(directory).glob("laptop_price_compare_*.csv"))
-    return sorted(set(files))
+    return sorted(set(files), key=comparison_file_sort_key)
 
 
 # lay file processed moi nhat
@@ -138,20 +164,39 @@ def price_drop_percent(previous_price, current_price):
 def build_previous_row_map(df):
     rows = {}
     for _, row in df.iterrows():
-        model_key = clean_text(row.get("model_key"))
-        if model_key:
-            rows[model_key] = row
+        key = product_key(row.get("model_key"), row.get("brand"))
+        if key[0]:
+            rows[key] = row
     return rows
 
 
-def build_deals(current_df, previous_df, threshold=DEFAULT_THRESHOLD):
+def load_favorite_product_keys():
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT model_key, brand
+                FROM favorite_products
+                """
+            )
+            return {
+                product_key(model_key, brand)
+                for model_key, brand in cur.fetchall()
+                if product_key(model_key, brand)[0]
+            }
+
+
+def build_deals(current_df, previous_df, threshold=DEFAULT_THRESHOLD, favorite_keys=None):
     previous_rows = build_previous_row_map(previous_df)
     deals = []
     for _, row in current_df.iterrows():
         product_name = clean_text(row.get("ten")) or clean_text(row.get("display_name"))
         brand = clean_text(row.get("brand")) or ""
         model_key = clean_text(row.get("model_key")) or ""
-        previous_row = previous_rows.get(model_key)
+        if favorite_keys is not None and product_key(model_key, brand) not in favorite_keys:
+            continue
+
+        previous_row = previous_rows.get(product_key(model_key, brand))
         if not product_name or previous_row is None:
             continue
 
@@ -279,10 +324,17 @@ def main():
     csv_path, current_df = load_comparison_frame(args.csv)
     previous_csv = Path(args.previous_csv) if args.previous_csv else previous_processed_csv(csv_path)
     previous_csv_path, previous_df = load_comparison_frame(previous_csv)
-    deals = build_deals(current_df, previous_df, threshold=args.threshold)[: args.limit]
+    favorite_keys = load_favorite_product_keys()
+    deals = build_deals(
+        current_df,
+        previous_df,
+        threshold=args.threshold,
+        favorite_keys=favorite_keys,
+    )[: args.limit]
     print(f"CSV hom nay: {csv_path}")
     print(f"CSV hom qua: {previous_csv_path}")
     print(f"Threshold: {args.threshold:.1f}%")
+    print(f"Favorite products: {len(favorite_keys)}")
     print(f"Deals found: {len(deals)}")
 
     if not deals:

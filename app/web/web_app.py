@@ -29,7 +29,7 @@ templates = Jinja2Templates(directory=str(PROJECT_DIR / "templates"))
 
 load_env_file()
 
-app = FastAPI(title="Laptop Price Analytics")
+app = FastAPI(title="LapWise")
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET_KEY", "dev-only-change-this-secret-key"),
@@ -330,12 +330,176 @@ def featured_products_by_brand():
     return grouped
 
 
+def hero_price_movers(limit=8):
+    try:
+        ensure_schema()
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    WITH latest_date AS (
+                        SELECT MAX(comparison_date) AS value
+                        FROM daily_price_comparisons
+                    ),
+                    previous_date AS (
+                        SELECT MAX(comparison_date) AS value
+                        FROM daily_price_comparisons
+                        WHERE comparison_date < (SELECT value FROM latest_date)
+                    ),
+                    scored AS (
+                        SELECT
+                            l.id,
+                            l.comparison_date,
+                            l.model_key,
+                            l.display_name,
+                            l.brand,
+                            l.gia_ban_phongvu,
+                            l.gia_goc_phongvu,
+                            l.url_phongvu,
+                            l.gia_ban_gearvn,
+                            l.gia_goc_gearvn,
+                            l.url_gearvn,
+                            l.gia_ban_cellphones,
+                            l.gia_goc_cellphones,
+                            l.url_cellphones,
+                            l.image_url,
+                            l.so_website_co_hang,
+                            LEAST(
+                                COALESCE(l.gia_ban_phongvu, 999999999999),
+                                COALESCE(l.gia_ban_gearvn, 999999999999),
+                                COALESCE(l.gia_ban_cellphones, 999999999999)
+                            ) AS latest_lowest,
+                            LEAST(
+                                COALESCE(p.gia_ban_phongvu, 999999999999),
+                                COALESCE(p.gia_ban_gearvn, 999999999999),
+                                COALESCE(p.gia_ban_cellphones, 999999999999)
+                            ) AS previous_lowest,
+                            (SELECT value FROM previous_date) AS previous_comparison_date
+                        FROM daily_price_comparisons l
+                        JOIN daily_price_comparisons p
+                          ON p.model_key = l.model_key
+                         AND p.brand = l.brand
+                         AND p.comparison_date = (SELECT value FROM previous_date)
+                        WHERE l.comparison_date = (SELECT value FROM latest_date)
+                    )
+                    SELECT *
+                    FROM scored
+                    WHERE latest_lowest < 999999999999
+                      AND previous_lowest < 999999999999
+                      AND latest_lowest <> previous_lowest
+                    ORDER BY
+                        CASE WHEN latest_lowest < previous_lowest THEN 0 ELSE 1 END,
+                        ABS((latest_lowest - previous_lowest) / previous_lowest) DESC
+                    LIMIT %s
+                    """,
+                    (limit,),
+                )
+                columns = [desc.name for desc in cur.description]
+                rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+    except Exception:
+        rows = []
+
+    rows = enrich_records_with_images(rows)
+    movers = []
+    for row in rows:
+        product = product_from_record(row)
+        latest_price = clean_number(row.get("latest_lowest"))
+        previous_price = clean_number(row.get("previous_lowest"))
+        if latest_price is None or previous_price is None or previous_price <= 0:
+            continue
+
+        change_amount = latest_price - previous_price
+        change_percent = change_amount / previous_price * 100
+        movers.append(
+            {
+                "id": product["id"],
+                "brand": product["brand"],
+                "display_name": product["display_name"],
+                "model_key": product["model_key"],
+                "image_url": product["image_url"],
+                "lowest_price": product["lowest_price"],
+                "best_source": product["best_source"],
+                "comparison_date": str(row.get("comparison_date")),
+                "previous_date": str(row.get("previous_comparison_date")),
+                "change_amount": change_amount,
+                "change_percent": change_percent,
+                "change_label": f"{change_percent:+.1f}%",
+                "is_drop": change_amount < 0,
+            }
+        )
+    return movers
+
+
 def find_product(product_id):
     products, _ = fetch_dashboard_products(limit=1000)
     for product in products:
         if product["id"] == product_id:
             return product
     return None
+
+
+def attach_source_price_changes(product):
+    if not product:
+        return product
+
+    comparison_date = product.get("comparison_date")
+    if not comparison_date:
+        return product
+
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        gia_ban_phongvu,
+                        gia_ban_gearvn,
+                        gia_ban_cellphones
+                    FROM daily_price_comparisons
+                    WHERE model_key = %s
+                      AND brand = %s
+                      AND comparison_date < %s
+                    ORDER BY comparison_date DESC
+                    LIMIT 1
+                    """,
+                    (product["model_key"], product["brand"], comparison_date),
+                )
+                row = cur.fetchone()
+    except Exception:
+        return product
+
+    if not row:
+        return product
+
+    previous_prices = {
+        "phongvu": clean_number(row[0]),
+        "gearvn": clean_number(row[1]),
+        "cellphones": clean_number(row[2]),
+    }
+
+    for option in product.get("price_options", []):
+        current_price = clean_number(option.get("current_price"))
+        previous_price = previous_prices.get(option.get("source"))
+        option["previous_price"] = previous_price
+        option["change_amount"] = None
+        option["change_percent"] = None
+        if current_price is None or previous_price is None or previous_price <= 0:
+            continue
+        option["change_amount"] = current_price - previous_price
+        option["change_percent"] = (current_price - previous_price) / previous_price * 100
+
+    change_by_source = {
+        option["source"]: option
+        for option in product.get("price_options", [])
+    }
+    for price in product.get("prices", []):
+        change = change_by_source.get(price.get("source"))
+        if change:
+            price["previous_price"] = change.get("previous_price")
+            price["change_amount"] = change.get("change_amount")
+            price["change_percent"] = change.get("change_percent")
+
+    return product
 
 
 def fetch_price_history(product):
@@ -440,65 +604,271 @@ def normalize_text(text):
     return text.lower()
 
 
-def build_assistant_answer(product, message):
+def price_change_summary(history):
+    if len(history) < 2:
+        return None
+
+    previous = history[-2]
+    current = history[-1]
+    previous_price = clean_number(previous.get("price"))
+    current_price = clean_number(current.get("price"))
+    if previous_price is None or current_price is None:
+        return None
+
+    delta = current_price - previous_price
+    percent = abs(delta) / previous_price * 100 if previous_price else 0
+    return {
+        "previous_date": previous.get("date"),
+        "current_date": current.get("date"),
+        "previous_price": previous_price,
+        "current_price": current_price,
+        "delta": delta,
+        "percent": percent,
+    }
+
+
+def is_english(language):
+    return str(language or "").lower().startswith("en")
+
+
+def best_price_line(product, language="vi"):
+    english = is_english(language)
+    if not product["prices"]:
+        return "I do not have a selling price for this model yet." if english else "Mình chưa có giá bán cho model này."
+    if english:
+        return (
+            f"The current lowest price is {format_vnd(product['lowest_price'])} "
+            f"at {product['best_source']}."
+        )
+    return (
+        f"Giá thấp nhất hiện tại là {format_vnd(product['lowest_price'])} "
+        f"tại {product['best_source']}."
+    )
+
+
+def build_price_answer(product, language="vi"):
+    english = is_english(language)
+    if not product["prices"]:
+        return "I do not have a selling price for this model yet." if english else "Mình chưa có giá bán cho model này."
+
+    lines = [best_price_line(product, language), "Available prices:" if english else "Bảng giá đang có:"]
+    for price in product["prices"]:
+        suffix = " - lowest" if english and price["label"] == product["best_source"] else ""
+        if not english and price["label"] == product["best_source"]:
+            suffix = " - rẻ nhất"
+        lines.append(f"- {price['label']}: {format_vnd(price['current_price'])}{suffix}")
+    return "\n".join(lines)
+
+
+def build_trend_answer(product, language="vi"):
+    english = is_english(language)
+    history = fetch_price_history(product)
+    if len(history) < 2:
+        if english:
+            return (
+                "I do not have enough price history to conclude the trend yet. "
+                "This model needs at least 2 valid crawls with price data."
+            )
+        return (
+            "Mình chưa có đủ lịch sử giá để kết luận xu hướng. "
+            "Cần ít nhất 2 lần crawl có giá hợp lệ cho model này."
+        )
+
+    change = price_change_summary(history)
+    if not change:
+        if english:
+            return "I have price history, but the latest change is not readable yet."
+        return "Mình có lịch sử giá nhưng chưa đọc được mức thay đổi hợp lệ."
+
+    if english and change["delta"] < 0:
+        direction = "is falling"
+        detail = f"down {format_vnd(abs(change['delta']))} ({change['percent']:.1f}%)"
+    elif english and change["delta"] > 0:
+        direction = "is rising"
+        detail = f"up {format_vnd(change['delta'])} ({change['percent']:.1f}%)"
+    elif english:
+        direction = "is flat"
+        detail = "unchanged"
+    elif change["delta"] < 0:
+        direction = "đang giảm"
+        detail = f"giảm {format_vnd(abs(change['delta']))} ({change['percent']:.1f}%)"
+    elif change["delta"] > 0:
+        direction = "đang tăng"
+        detail = f"tăng {format_vnd(change['delta'])} ({change['percent']:.1f}%)"
+    else:
+        direction = "đang đi ngang"
+        detail = "không đổi"
+
+    lowest_seen = min(item["price"] for item in history)
+    if english:
+        lines = [
+            f"Latest trend: the price {direction}.",
+            (
+                f"From {change['previous_date']} to {change['current_date']}, "
+                f"the lowest price is {detail}."
+            ),
+            f"Lowest price seen in the data: {format_vnd(lowest_seen)}.",
+            best_price_line(product, language),
+        ]
+        return "\n".join(lines)
+
+    lines = [
+        f"Xu hướng gần nhất: giá {direction}.",
+        (
+            f"Từ {change['previous_date']} đến {change['current_date']}, "
+            f"giá thấp nhất {detail}."
+        ),
+        f"Giá thấp nhất từng thấy trong dữ liệu: {format_vnd(lowest_seen)}.",
+        best_price_line(product),
+    ]
+    return "\n".join(lines)
+
+
+def build_buy_recommendation(product, language="vi"):
+    english = is_english(language)
+    if not product["prices"]:
+        return "I do not have a selling price yet, so I cannot recommend buying this model." if english else "Mình chưa có giá bán nên chưa thể khuyến nghị mua model này."
+
+    history = fetch_price_history(product)
+    change = price_change_summary(history)
+    lines = [best_price_line(product, language)]
+
+    if not change:
+        lines.append(
+            "I do not have enough history to know whether this is a better time than before."
+            if english
+            else "Mình chưa có đủ lịch sử giá để biết đây có phải thời điểm tốt hơn trước không."
+        )
+    elif change["delta"] < 0:
+        if english:
+            lines.append(
+                f"Compared with the previous crawl, the price dropped {format_vnd(abs(change['delta']))} "
+                f"({change['percent']:.1f}%). That is a good signal if the specs fit your needs."
+            )
+        else:
+            lines.append(
+                f"So với lần crawl trước, giá đã giảm {format_vnd(abs(change['delta']))} "
+                f"({change['percent']:.1f}%). Đây là tín hiệu tốt nếu cấu hình đúng nhu cầu."
+            )
+    elif change["delta"] > 0:
+        if english:
+            lines.append(
+                f"Compared with the previous crawl, the price increased {format_vnd(change['delta'])} "
+                f"({change['percent']:.1f}%). If it is not urgent, keep watching."
+            )
+        else:
+            lines.append(
+                f"So với lần crawl trước, giá đã tăng {format_vnd(change['delta'])} "
+                f"({change['percent']:.1f}%). Nếu không gấp, nên theo dõi thêm."
+            )
+    else:
+        lines.append("The price is flat compared with the previous crawl." if english else "Giá đang đi ngang so với lần crawl trước.")
+
+    best = product["prices"][0]
+    if best.get("url"):
+        lines.append(f"Link to check first: {best['url']}" if english else f"Link nên kiểm tra trước: {best['url']}")
+    lines.append(
+        "Bottom line: this is based on crawled prices, so you should still check specs and warranty at the retailer."
+        if english
+        else "Kết luận: mình dựa trên giá crawl được, bạn vẫn nên kiểm tra cấu hình và bảo hành tại cửa hàng."
+    )
+    return "\n".join(lines)
+
+
+def build_stock_answer(product, language="vi"):
+    english = is_english(language)
+    stock_rows = fetch_stock_rows(product)
+    if not stock_rows:
+        if english:
+            return (
+                "Current data does not have a clear stock status for this model. "
+                "Some raw rows contain `stock` or `available`, but not enough to conclude confidently."
+            )
+        return (
+            "Dữ liệu hiện tại chưa có trạng thái kho đủ rõ cho model này. "
+            "Một số raw data có `stock` hoặc `available`, nhưng chưa đủ để kết luận chắc."
+        )
+
+    lines = ["Latest stock status found in raw data:" if english else "Trạng thái kho mới nhất mình thấy trong raw data:"]
+    for row in stock_rows:
+        source = SOURCE_LABELS.get(row["source"], row["source"])
+        stock = row.get("stock")
+        available = row.get("available")
+        if stock is not None:
+            lines.append(f"- {source}: stock = {stock}")
+        elif available is not None:
+            if english:
+                lines.append(f"- {source}: {'in stock' if available else 'not in stock'}")
+            else:
+                lines.append(f"- {source}: {'có hàng' if available else 'chưa có hàng'}")
+        else:
+            lines.append(f"- {source}: no clear stock field" if english else f"- {source}: chưa có trường kho rõ ràng")
+    return "\n".join(lines)
+
+
+def build_specs_answer(product, language="vi"):
+    english = is_english(language)
+    specs = extract_specs_from_name(product["display_name"])
+    if not specs:
+        if english:
+            return (
+                "Current data does not have a detailed specs table. "
+                "I will not invent specs; crawl the product detail page for a safer answer."
+            )
+        return (
+            "Dữ liệu hiện tại chưa có bảng thông số kỹ thuật chi tiết. "
+            "Mình không tự bịa cấu hình; nên crawl thêm trang chi tiết sản phẩm để chắc hơn."
+        )
+
+    lines = ["I can only infer from the product name, so treat this as reference information:" if english else "Mình chỉ suy luận được từ tên sản phẩm, nên đây là thông tin tham khảo:"]
+    lines.extend(f"- {key}: {value}" for key, value in specs.items())
+    lines.append(
+        "For 100% accuracy, compare it with the retailer's product detail page."
+        if english
+        else "Nếu cần chính xác 100%, nên đối chiếu trang chi tiết của cửa hàng."
+    )
+    return "\n".join(lines)
+
+
+def build_assistant_answer(product, message, language="vi"):
+    english = is_english(language)
     if not product:
-        return "Mình chưa tìm thấy sản phẩm đang được chọn."
+        return "I could not find the selected product." if english else "Mình chưa tìm thấy sản phẩm đang được chọn."
 
     message_lower = normalize_text(message)
-    specs = extract_specs_from_name(product["display_name"])
-    stock_rows = fetch_stock_rows(product)
 
-    if any(keyword in message_lower for keyword in ["cau hinh", "cpu", "ram", "ssd", "man hinh", "thong so"]):
-        if not specs:
-            return (
-                "Dữ liệu hiện tại chưa có bảng thông số kỹ thuật chi tiết. "
-                "Mình chưa nên tự bịa cấu hình. Bước sau ta có thể thêm crawler chi tiết "
-                "từ trang sản phẩm hoặc nối AI để trích xuất từ mô tả."
-            )
-        lines = ["Mình chỉ suy luận được từ tên sản phẩm, nên đây là thông tin tham khảo:"]
-        lines.extend(f"- {key}: {value}" for key, value in specs.items())
-        lines.append("Nếu cần chính xác 100%, ta nên crawl thêm trang chi tiết sản phẩm.")
-        return "\n".join(lines)
+    if any(keyword in message_lower for keyword in ["nen mua", "mua hom nay", "co nen", "dang mua", "should i buy", "buy today", "worth buying", "purchase"]):
+        return build_buy_recommendation(product, language)
 
-    if any(keyword in message_lower for keyword in ["kho", "con hang", "het hang", "stock"]):
-        if not stock_rows:
-            return (
-                "Dữ liệu so sánh hiện tại chưa có trạng thái kho đầy đủ cho model này. "
-                "Một số raw data có `stock` hoặc `available`, nhưng chưa đủ tin cậy để kết luận toàn thị trường."
-            )
-        lines = ["Trạng thái kho mình thấy trong raw data mới nhất:"]
-        for row in stock_rows:
-            source = SOURCE_LABELS.get(row["source"], row["source"])
-            stock = row.get("stock")
-            available = row.get("available")
-            if stock is not None:
-                lines.append(f"- {source}: stock = {stock}")
-            elif available is not None:
-                lines.append(f"- {source}: {'có hàng' if available else 'chưa có hàng'}")
-            else:
-                lines.append(f"- {source}: chưa có trường kho rõ ràng")
-        return "\n".join(lines)
+    if any(keyword in message_lower for keyword in ["xu huong", "lich su", "giam gia", "tang gia", "bien dong", "trend", "history", "price moved", "price movement", "drop", "decrease", "increase", "recently"]):
+        return build_trend_answer(product, language)
 
-    if any(keyword in message_lower for keyword in ["gia", "re", "mua", "website", "so sanh"]):
-        if not product["prices"]:
-            return "Mình chưa có giá bán cho model này."
-        lines = [
-            f"Giá thấp nhất hiện tại là {format_vnd(product['lowest_price'])} tại {product['best_source']}."
-        ]
-        for price in product["prices"]:
-            lines.append(f"- {price['label']}: {format_vnd(price['current_price'])}")
-        return "\n".join(lines)
+    if any(keyword in message_lower for keyword in ["cau hinh", "cpu", "ram", "ssd", "man hinh", "thong so", "spec", "configuration", "processor", "screen", "display", "memory", "storage"]):
+        return build_specs_answer(product, language)
 
+    if any(keyword in message_lower for keyword in ["kho", "con hang", "het hang", "stock", "available", "availability", "in stock", "out of stock"]):
+        return build_stock_answer(product, language)
+
+    if any(keyword in message_lower for keyword in ["gia", "re", "mua", "website", "so sanh", "cua hang", "price", "cheapest", "best price", "retailer", "shop", "compare"]):
+        return build_price_answer(product, language)
+
+    if english:
+        return (
+            f"Selected model: {product['display_name']}.\n"
+            f"{best_price_line(product, language)}\n"
+            "You can ask: best price, should I buy today, price trend, specs, or stock status."
+        )
     return (
         f"Model đang chọn: {product['display_name']}.\n"
-        f"Giá thấp nhất: {format_vnd(product['lowest_price'])} tại {product['best_source'] or 'chưa rõ'}.\n"
-        "Bạn có thể hỏi mình về giá, cấu hình suy luận từ tên máy, hoặc trạng thái kho hiện có trong raw data."
+        f"{best_price_line(product, language)}\n"
+        "Bạn có thể hỏi nhanh: giá rẻ nhất, có nên mua hôm nay, xu hướng giá, cấu hình, hoặc tình trạng kho."
     )
 
 
 class ChatRequest(BaseModel):
     product_id: int
     message: str
+    language: str | None = "vi"
 
 
 class AuthRequest(BaseModel):
@@ -519,6 +889,7 @@ def home(request: Request):
         {
             "user": get_current_user(request),
             "featured": featured_products_by_brand(),
+            "hero_slides": hero_price_movers(),
         },
     )
 
@@ -565,6 +936,7 @@ def dashboard(request: Request):
             )
         except ValueError:
             selected = products[0] if products else None
+    selected = attach_source_price_changes(selected)
     return templates.TemplateResponse(
         request,
         "dashboard.html",
@@ -588,6 +960,8 @@ def products_page(request: Request):
     products, data_source = fetch_dashboard_products(limit=500)
     query = (request.query_params.get("q") or "").strip().lower()
     brand = (request.query_params.get("brand") or "").strip().lower()
+    min_price = clean_number(request.query_params.get("min_price"))
+    max_price = clean_number(request.query_params.get("max_price"))
 
     if query:
         products = [
@@ -605,6 +979,20 @@ def products_page(request: Request):
             if (product["brand"] or "").lower() == brand
         ]
 
+    if min_price is not None:
+        products = [
+            product
+            for product in products
+            if product["lowest_price"] is not None and product["lowest_price"] >= min_price
+        ]
+
+    if max_price is not None:
+        products = [
+            product
+            for product in products
+            if product["lowest_price"] is not None and product["lowest_price"] <= max_price
+        ]
+
     return templates.TemplateResponse(
         request,
         "products.html",
@@ -614,6 +1002,8 @@ def products_page(request: Request):
             "data_source": data_source,
             "query": query,
             "brand": brand,
+            "min_price": int(min_price) if min_price is not None else "",
+            "max_price": int(max_price) if max_price is not None else "",
         },
     )
 
@@ -640,14 +1030,18 @@ def favorites_page(request: Request):
             favorites = [dict(zip(columns, row)) for row in cur.fetchall()]
 
     products, _ = fetch_dashboard_products(limit=1000)
-    product_ids_by_key = {
-        (product["model_key"], (product["brand"] or "").lower()): product["id"]
+    products_by_key = {
+        (product["model_key"], (product["brand"] or "").lower()): product
         for product in products
     }
     for favorite in favorites:
-        favorite["product_id"] = product_ids_by_key.get(
+        product = products_by_key.get(
             (favorite["model_key"], (favorite["brand"] or "").lower())
         )
+        favorite["product_id"] = product["id"] if product else None
+        favorite["image_url"] = product["image_url"] if product else None
+        favorite["lowest_price"] = product["lowest_price"] if product else None
+        favorite["best_source"] = product["best_source"] if product else None
 
     return templates.TemplateResponse(
         request,
@@ -661,6 +1055,7 @@ def product_detail(product_id: int):
     product = find_product(product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    product = attach_source_price_changes(product)
     return {
         "product": product,
         "history": fetch_price_history(product),
@@ -672,7 +1067,7 @@ def product_detail(product_id: int):
 @app.post("/api/chat")
 def chat(payload: ChatRequest):
     product = find_product(payload.product_id)
-    return {"answer": build_assistant_answer(product, payload.message)}
+    return {"answer": build_assistant_answer(product, payload.message, payload.language)}
 
 
 @app.post("/api/register")

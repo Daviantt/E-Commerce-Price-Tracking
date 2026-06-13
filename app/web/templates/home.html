@@ -3,21 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LapoAnalytics</title>
-  <link rel="stylesheet" href="/static/app.css" />
+  <title>LapWise</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260613-home" />
 </head>
 <body>
   <div class="marketing-page">
     <header class="marketing-nav">
-      <a class="marketing-logo" href="/">LapoAnalytics</a>
+      <a class="marketing-logo" href="/">LapWise</a>
       <nav class="marketing-links">
-        <a href="/products">Market</a>
-        <a href="/dashboard">Comparisons</a>
-        <a href="/products">Products</a>
+        <a href="/products" data-i18n="navProducts">Sản phẩm</a>
+        <a href="/favorites" data-i18n="navTracking">Theo dõi giá</a>
       </nav>
       <div class="marketing-auth">
+        <button id="languageToggle" class="language-toggle" type="button" aria-label="Switch language">
+          <span>Language</span>
+          <strong>VI</strong>
+        </button>
         {% if user %}
-          <a class="login-link" href="/favorites">Yêu thích</a>
+          <a class="login-link" href="/favorites" data-i18n="favorites">Yêu thích</a>
           <a class="signup-button" href="/dashboard">Dashboard</a>
         {% else %}
           <a class="login-link" href="/login">Login</a>
@@ -28,8 +31,8 @@
 
     <section class="marketing-hero">
       <div class="hero-copy">
-        <h1>Phân tích giá &amp; Đánh giá<br><span>Laptop chuyên sâu</span></h1>
-        <p>
+        <h1 data-i18n-html="heroTitle">Phân tích giá &amp; Đánh giá<br><span>Laptop chuyên sâu</span></h1>
+        <p data-i18n="heroCopy">
           Nền tảng dữ liệu hàng đầu giúp bạn theo dõi biến động giá,
           so sánh cấu hình và đưa ra quyết định mua sắm laptop thông minh
           dựa trên dữ liệu crawl thực tế.
@@ -37,74 +40,74 @@
         <form class="hero-search" action="/products">
           <div class="hero-search-box">
             <span class="search-icon">⌕</span>
-            <input name="q" placeholder="Tìm kiếm mẫu laptop..." />
+            <input name="q" placeholder="Tìm kiếm mẫu laptop..." data-i18n-placeholder="heroSearch" />
           </div>
-          <button type="submit">Bắt đầu khám phá</button>
+          <button type="submit" data-i18n="heroButton">Bắt đầu khám phá</button>
         </form>
       </div>
 
       <div class="hero-visual">
-        <div class="hero-device-card">
-          <div class="hero-image-placeholder">
-            <div class="hero-laptop">
-              <div class="hero-chart">
-                <svg viewBox="0 0 320 150" aria-hidden="true">
-                  <polyline points="0,100 35,88 70,104 108,50 145,78 184,42 218,86 255,62 288,80 320,45" />
-                  <g>
-                    <rect x="8" y="120" width="9" height="22" />
-                    <rect x="25" y="108" width="9" height="34" />
-                    <rect x="42" y="116" width="9" height="26" />
-                    <rect x="59" y="96" width="9" height="46" />
-                    <rect x="76" y="126" width="9" height="16" />
-                    <rect x="93" y="90" width="9" height="52" />
-                    <rect x="110" y="112" width="9" height="30" />
-                    <rect x="127" y="104" width="9" height="38" />
-                    <rect x="144" y="119" width="9" height="23" />
-                    <rect x="161" y="86" width="9" height="56" />
-                    <rect x="178" y="100" width="9" height="42" />
-                    <rect x="195" y="122" width="9" height="20" />
-                    <rect x="212" y="114" width="9" height="28" />
-                    <rect x="229" y="124" width="9" height="18" />
-                    <rect x="246" y="118" width="9" height="24" />
-                    <rect x="263" y="128" width="9" height="14" />
-                    <rect x="280" y="121" width="9" height="21" />
-                    <rect x="297" y="126" width="9" height="16" />
-                  </g>
-                </svg>
+        {% set active_slide = hero_slides[0] if hero_slides else none %}
+        <a id="heroSlideLink" class="hero-device-card hero-product-card" href="{% if active_slide %}/dashboard/product/{{ active_slide.id }}{% else %}/products{% endif %}">
+          <div class="hero-slide-info">
+            <div id="heroSlideKicker" class="hero-slide-kicker">
+              {% if active_slide %}{{ active_slide.brand|upper }} · {{ active_slide.model_key }}{% else %}Theo dõi giá laptop{% endif %}
+            </div>
+            <h2 id="heroSlideName">
+              {% if active_slide %}{{ active_slide.display_name }}{% else %}Laptop đang biến động giá{% endif %}
+            </h2>
+            <div class="hero-slide-meta">
+              <div>
+                <span data-i18n="bestPrice">Giá tốt nhất</span>
+                <strong id="heroSlidePrice">{{ active_slide.lowest_price|vnd if active_slide else "—" }}</strong>
+              </div>
+              <div>
+                <span data-i18n="retailer">Đại lý</span>
+                <strong id="heroSlideSource">{{ active_slide.best_source if active_slide else "—" }}</strong>
               </div>
             </div>
           </div>
+          <div class="hero-image-placeholder hero-product-image-shell">
+            {% if active_slide and active_slide.image_url %}
+              <img id="heroSlideImage" src="{{ active_slide.image_url }}" alt="{{ active_slide.display_name }}">
+              <div id="heroSlideFallback" class="hero-product-fallback hidden">▧</div>
+            {% else %}
+              <img id="heroSlideImage" class="hidden" src="" alt="">
+              <div id="heroSlideFallback" class="hero-product-fallback">▧</div>
+            {% endif %}
+          </div>
+        </a>
+        <div id="heroPriceChip" class="price-chip {% if active_slide and not active_slide.is_drop %}price-chip-up{% else %}price-chip-drop{% endif %}">
+          <span id="heroChipIcon">{{ "↗" if active_slide and not active_slide.is_drop else "↘" }}</span>
+          <strong id="heroChipPercent">{{ active_slide.change_label if active_slide else "-15%" }}</strong>
+          <em data-i18n="today">HÔM NAY</em>
         </div>
-        <div class="price-chip">
-          <span>↗</span>
-          <strong>-15%</strong>
-          <em>HÔM NAY</em>
-        </div>
+        <div id="heroSlideDots" class="hero-slide-dots" aria-label="Sản phẩm biến động giá"></div>
       </div>
     </section>
 
     <section class="feature-strip">
       <div class="feature-item">
         <div class="feature-icon">◷</div>
-        <h3>Dữ liệu thời gian thực</h3>
-        <p>Cập nhật giá từ các sàn thương mại điện tử lớn mỗi lần crawler chạy.</p>
+        <h3 data-i18n="featureDataTitle">Dữ liệu thời gian thực</h3>
+        <p data-i18n="featureDataCopy">Cập nhật giá từ các sàn thương mại điện tử lớn mỗi lần crawler chạy.</p>
       </div>
       <div class="feature-item">
         <div class="feature-icon">▣</div>
-        <h3>So sánh 3+ đại lý</h3>
-        <p>Tìm giá tốt nhất từ các nhà bán lẻ uy tín nhất Việt Nam.</p>
+        <h3 data-i18n="featurePriceTitle">Theo dõi biến động</h3>
+        <p data-i18n="featurePriceCopy">Nhận biết sản phẩm đang giảm hoặc tăng giá qua từng lần cập nhật dữ liệu.</p>
       </div>
       <div class="feature-item">
         <div class="feature-icon">⌁</div>
-        <h3>Dự báo xu hướng giá</h3>
-        <p>Sử dụng dữ liệu lịch sử để nhận biết thời điểm giá đang tốt hơn.</p>
+        <h3 data-i18n="featureTrendTitle">Dự báo xu hướng giá</h3>
+        <p data-i18n="featureTrendCopy">Sử dụng dữ liệu lịch sử để nhận biết thời điểm giá đang tốt hơn.</p>
       </div>
     </section>
 
     <main class="brand-market">
       <div class="market-heading">
-        <h2>Thương hiệu tiêu biểu</h2>
-        <p>Sản phẩm bán chạy nhất từ các đối tác hàng đầu</p>
+        <h2 data-i18n="brandsTitle">Thương hiệu tiêu biểu</h2>
+        <p data-i18n="brandsCopy">Sản phẩm bán chạy nhất từ các đối tác hàng đầu</p>
       </div>
 
       {% for brand, products in featured.items() %}
@@ -114,7 +117,7 @@
             <span class="brand-icon">{{ "▰" if brand == "asus" else "▱" if brand == "msi" else "⌁" }}</span>
             <h3>{{ brand|upper }}</h3>
           </div>
-          <a href="/products?brand={{ brand }}">Xem tất cả →</a>
+          <a href="/products?brand={{ brand }}" data-i18n="viewAll">Xem tất cả →</a>
         </div>
 
         <div class="marketing-product-grid">
@@ -129,7 +132,7 @@
             </div>
             <div class="marketing-product-name">{{ product.display_name }}</div>
             <div class="marketing-product-price">
-              <span>Giá từ</span>
+              <span data-i18n="priceFrom">Giá từ</span>
               <strong>{{ product.lowest_price|vnd }}</strong>
             </div>
           </a>
@@ -141,7 +144,7 @@
             <div class="product-image-slot"><span>▧</span></div>
             <div class="marketing-product-name">Chưa có dữ liệu {{ brand|upper }}</div>
             <div class="marketing-product-price">
-              <span>Giá từ</span>
+              <span data-i18n="priceFrom">Giá từ</span>
               <strong>—</strong>
             </div>
           </div>
@@ -154,8 +157,8 @@
 
     <footer class="marketing-footer">
       <div>
-        <h3>LapoAnalytics</h3>
-        <p>© 2026 LapoAnalytics. Precision data for tech enthusiasts.</p>
+        <h3>LapWise</h3>
+        <p>© 2026 LapWise. Precision data for tech enthusiasts.</p>
       </div>
       <div class="footer-links">
         <a href="#">Terms of Service</a>
@@ -166,5 +169,144 @@
       </div>
     </footer>
   </div>
+
+  <script>
+    const translations = {
+      vi: {
+        navProducts: "Sản phẩm",
+        navTracking: "Theo dõi giá",
+        favorites: "Yêu thích",
+        heroTitle: "Phân tích giá &amp; Đánh giá<br><span>Laptop chuyên sâu</span>",
+        heroCopy: "Nền tảng dữ liệu hàng đầu giúp bạn theo dõi biến động giá, so sánh cấu hình và đưa ra quyết định mua sắm laptop thông minh dựa trên dữ liệu crawl thực tế.",
+        heroSearch: "Tìm kiếm mẫu laptop...",
+        heroButton: "Bắt đầu khám phá",
+        bestPrice: "Giá tốt nhất",
+        retailer: "Đại lý",
+        today: "HÔM NAY",
+        featureDataTitle: "Dữ liệu thời gian thực",
+        featureDataCopy: "Cập nhật giá từ các sàn thương mại điện tử lớn mỗi lần crawler chạy.",
+        featurePriceTitle: "Theo dõi biến động",
+        featurePriceCopy: "Nhận biết sản phẩm đang giảm hoặc tăng giá qua từng lần cập nhật dữ liệu.",
+        featureTrendTitle: "Dự báo xu hướng giá",
+        featureTrendCopy: "Sử dụng dữ liệu lịch sử để nhận biết thời điểm giá đang tốt hơn.",
+        brandsTitle: "Thương hiệu tiêu biểu",
+        brandsCopy: "Sản phẩm bán chạy nhất từ các đối tác hàng đầu",
+        viewAll: "Xem tất cả →",
+        priceFrom: "Giá từ",
+        toggleLabel: "VI",
+      },
+      en: {
+        navProducts: "Products",
+        navTracking: "Price Watch",
+        favorites: "Favorites",
+        heroTitle: "Laptop Price Intelligence<br><span>Built for better buying</span>",
+        heroCopy: "Track price movement, inspect laptop deals, and make smarter purchase decisions using real crawl data from major retailers.",
+        heroSearch: "Search laptop models...",
+        heroButton: "Start exploring",
+        bestPrice: "Best price",
+        retailer: "Retailer",
+        today: "TODAY",
+        featureDataTitle: "Fresh price data",
+        featureDataCopy: "Prices update whenever the crawler collects new data from major retailers.",
+        featurePriceTitle: "Price movement watch",
+        featurePriceCopy: "Spot laptops that are rising or dropping after each data update.",
+        featureTrendTitle: "Trend signals",
+        featureTrendCopy: "Use historical prices to recognize when a laptop is becoming a better deal.",
+        brandsTitle: "Featured brands",
+        brandsCopy: "Popular products from leading retail partners",
+        viewAll: "View all →",
+        priceFrom: "From",
+        toggleLabel: "EN",
+      },
+    };
+
+    function applyLanguage(language) {
+      const dictionary = translations[language] || translations.vi;
+      document.documentElement.lang = language === "en" ? "en" : "vi";
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.dataset.i18n;
+        if (dictionary[key]) node.textContent = dictionary[key];
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach((node) => {
+        const key = node.dataset.i18nHtml;
+        if (dictionary[key]) node.innerHTML = dictionary[key];
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+        const key = node.dataset.i18nPlaceholder;
+        if (dictionary[key]) node.placeholder = dictionary[key];
+      });
+      const toggle = document.querySelector("#languageToggle");
+      if (toggle) {
+        toggle.querySelector("strong").textContent = dictionary.toggleLabel;
+        toggle.title = language === "en" ? "Switch to Vietnamese" : "Switch to English";
+      }
+      localStorage.setItem("lapwiseLanguage", language);
+    }
+
+    const savedLanguage = localStorage.getItem("lapwiseLanguage") || "vi";
+    applyLanguage(savedLanguage);
+
+    document.querySelector("#languageToggle")?.addEventListener("click", () => {
+      const current = localStorage.getItem("lapwiseLanguage") || "vi";
+      applyLanguage(current === "vi" ? "en" : "vi");
+    });
+
+    const heroSlides = {{ hero_slides|tojson }};
+    let heroSlideIndex = 0;
+
+    const heroVnd = (value) => {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
+      return new Intl.NumberFormat("vi-VN").format(Number(value)) + "₫";
+    };
+
+    function renderHeroSlide(index) {
+      if (!heroSlides.length) return;
+      heroSlideIndex = (index + heroSlides.length) % heroSlides.length;
+      const slide = heroSlides[heroSlideIndex];
+      const image = document.querySelector("#heroSlideImage");
+      const fallback = document.querySelector("#heroSlideFallback");
+      const chip = document.querySelector("#heroPriceChip");
+
+      document.querySelector("#heroSlideLink").href = `/dashboard/product/${slide.id}`;
+      document.querySelector("#heroSlideKicker").textContent = `${String(slide.brand || "").toUpperCase()} · ${slide.model_key || ""}`;
+      document.querySelector("#heroSlideName").textContent = slide.display_name || "Laptop đang biến động giá";
+      document.querySelector("#heroSlidePrice").textContent = heroVnd(slide.lowest_price);
+      document.querySelector("#heroSlideSource").textContent = slide.best_source || "—";
+      document.querySelector("#heroChipIcon").textContent = slide.is_drop ? "↘" : "↗";
+      document.querySelector("#heroChipPercent").textContent = slide.change_label || "0%";
+
+      chip.classList.toggle("price-chip-drop", Boolean(slide.is_drop));
+      chip.classList.toggle("price-chip-up", !slide.is_drop);
+
+      if (slide.image_url) {
+        image.src = slide.image_url;
+        image.alt = slide.display_name || "Laptop";
+        image.classList.remove("hidden");
+        fallback.classList.add("hidden");
+      } else {
+        image.removeAttribute("src");
+        image.alt = "";
+        image.classList.add("hidden");
+        fallback.classList.remove("hidden");
+      }
+
+      document.querySelectorAll(".hero-slide-dots button").forEach((button, dotIndex) => {
+        button.classList.toggle("active", dotIndex === heroSlideIndex);
+      });
+    }
+
+    function initHeroSlides() {
+      const dots = document.querySelector("#heroSlideDots");
+      if (!dots || heroSlides.length <= 1) return;
+      dots.innerHTML = heroSlides.map((_, index) => `<button type="button" aria-label="Sản phẩm ${index + 1}"></button>`).join("");
+      dots.querySelectorAll("button").forEach((button, index) => {
+        button.addEventListener("click", () => renderHeroSlide(index));
+      });
+      renderHeroSlide(0);
+      window.setInterval(() => renderHeroSlide(heroSlideIndex + 1), 4200);
+    }
+
+    initHeroSlides();
+  </script>
 </body>
 </html>
