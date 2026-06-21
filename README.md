@@ -282,6 +282,7 @@ Pipeline sẽ làm các bước:
 4. Lưu raw CSV.
 5. Merge dữ liệu so sánh giá.
 6. Ghi dữ liệu vào PostgreSQL.
+7. Gửi thông báo kết quả qua Telegram nếu đã cấu hình `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID`.
 
 ---
 
