@@ -3,6 +3,7 @@ import os
 
 import requests
 
+from app.chatbot.app import build_deals, load_comparison_frame, previous_processed_csv
 from app.crawlers.cellphones import crawl_all_supported_brands as crawl_cellphones_brands
 from app.crawlers.gearvn import crawl_all_supported_brands as crawl_gearvn_brands
 from app.crawlers.phongvu import crawl_all_supported_brands as crawl_phongvu_brands
@@ -36,12 +37,27 @@ def send_telegram_message(token, chat_id, message):
     return response.json()
 
 
+def count_price_drop_products(current_csv_path):
+    current_csv_path, current_df = load_comparison_frame(current_csv_path)
+    previous_csv = previous_processed_csv(current_csv_path)
+    _, previous_df = load_comparison_frame(previous_csv)
+
+    deals = build_deals(
+        current_df,
+        previous_df,
+        threshold=0.0,
+        favorite_keys=None,
+    )
+    return len({(deal.model_key, deal.brand) for deal in deals})
+
+
 def build_run_daily_message(
     status,
     raw_files,
     merged_file=None,
     run_id=None,
     database_enabled=False,
+    price_drop_count=None,
     error=None,
 ):
     header = "RUN_DAILY HOAN TAT" if status == "success" else "RUN_DAILY THAT BAI"
@@ -51,6 +67,8 @@ def build_run_daily_message(
     lines.append(f"<b>Raw files:</b> {len(raw_files)}")
     if merged_file is not None:
         lines.append(f"<b>Merged file:</b> {html.escape(str(merged_file))}")
+    if price_drop_count is not None:
+        lines.append(f"<b>May giam so voi hom qua:</b> {price_drop_count}")
     lines.append(f"<b>Database:</b> {'enabled' if database_enabled else 'disabled'}")
     if error:
         lines.append(f"<b>Error:</b> {html.escape(str(error))}")
@@ -63,6 +81,7 @@ def notify_run_daily(
     merged_file=None,
     run_id=None,
     database_enabled=False,
+    price_drop_count=None,
     error=None,
 ):
     token, chat_id = get_telegram_config()
@@ -76,6 +95,7 @@ def notify_run_daily(
         merged_file=merged_file,
         run_id=run_id,
         database_enabled=database_enabled,
+        price_drop_count=price_drop_count,
         error=error,
     )
     send_telegram_message(token, chat_id, message)
@@ -87,6 +107,7 @@ def main():
     run_id = None
     raw_files = []
     merged_file = None
+    price_drop_count = None
 
     if database_enabled:
         init_database()
@@ -104,6 +125,11 @@ def main():
 
         merged_file = merge_latest_daily_files()
 
+        try:
+            price_drop_count = count_price_drop_products(merged_file)
+        except Exception as exc:
+            print(f"Khong tinh duoc so may giam gia hom nay: {exc}")
+
         if database_enabled:
             sync_files_to_database(raw_files, merged_file, run_id=run_id)
             finish_crawl_run(run_id, status="success")
@@ -114,6 +140,7 @@ def main():
             merged_file=merged_file,
             run_id=run_id,
             database_enabled=database_enabled,
+            price_drop_count=price_drop_count,
         )
 
     except Exception as exc:
@@ -126,6 +153,7 @@ def main():
                 merged_file=merged_file,
                 run_id=run_id,
                 database_enabled=database_enabled,
+                price_drop_count=price_drop_count,
                 error=exc,
             )
         except Exception as notify_exc:

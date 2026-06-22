@@ -324,17 +324,16 @@ def main():
     csv_path, current_df = load_comparison_frame(args.csv)
     previous_csv = Path(args.previous_csv) if args.previous_csv else previous_processed_csv(csv_path)
     previous_csv_path, previous_df = load_comparison_frame(previous_csv)
-    favorite_keys = load_favorite_product_keys()
     deals = build_deals(
         current_df,
         previous_df,
         threshold=args.threshold,
-        favorite_keys=favorite_keys,
+        favorite_keys=None,
     )[: args.limit]
     print(f"CSV hom nay: {csv_path}")
     print(f"CSV hom qua: {previous_csv_path}")
     print(f"Threshold: {args.threshold:.1f}%")
-    print(f"Favorite products: {len(favorite_keys)}")
+    print("Scan mode: all products with price drops")
     print(f"Deals found: {len(deals)}")
 
     if not deals:
