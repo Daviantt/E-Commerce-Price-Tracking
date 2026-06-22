@@ -281,8 +281,10 @@ def import_raw_csv(path, run_id=None):
                     image_urls.insert(0, image_url)
                 specs = row_specs(row)
                 technical_specs = clean_json_dict(row.get("technical_specs"))
-                if not technical_specs:
-                    technical_specs = specs_to_display(specs)
+                technical_specs = {
+                    **specs_to_display(specs),
+                    **technical_specs,
+                }
                 discount_percent = clean_decimal(row.get("discount_percent"))
                 if discount_percent is None:
                     discount_percent = compute_discount_percent(
@@ -413,8 +415,10 @@ def import_comparison_csv(path):
                 )
                 specs = row_specs(row)
                 technical_specs = clean_json_dict(row.get("technical_specs"))
-                if not technical_specs:
-                    technical_specs = specs_to_display(specs)
+                technical_specs = {
+                    **specs_to_display(specs),
+                    **technical_specs,
+                }
                 cur.execute(
                     """
                     INSERT INTO daily_price_comparisons (

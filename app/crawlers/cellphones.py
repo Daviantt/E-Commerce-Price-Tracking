@@ -167,8 +167,8 @@ def normalize_product(item, brand, detail_specs=None):
         filterable.get("price"),
     )
     specs = merge_specs(
-        detail_specs,
         extract_specs_from_product(item, general.get("name"), general.get("sku")),
+        detail_specs,
     )
 
     return {

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>So sánh 2 máy - LapWise</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260622-compare-ui" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <div class="logo">LW</div>
+        <div>
+          <div class="brand-title">LapWise</div>
+          <div class="brand-subtitle">So sánh laptop</div>
+        </div>
+      </a>
+
+      <nav class="nav">
+        <a class="nav-link" href="/" data-i18n="navHome">⌂ Trang chủ</a>
+        <a class="nav-link" href="/products" data-i18n="navProducts">▦ Danh sách sản phẩm</a>
+        <a class="nav-link active" href="/compare" data-i18n="navCompare">⇄ So sánh 2 máy</a>
+        <a class="nav-link" href="/dashboard" data-i18n="navDashboard">◈ Dashboard sản phẩm</a>
+        <a class="nav-link" href="/favorites" data-i18n="navFavorites">♥ Sản phẩm yêu thích</a>
+      </nav>
+
+      <div class="side-section" style="margin-top:auto">
+        <button id="compareLanguageToggle" class="language-toggle sidebar-language-toggle" type="button" data-language-toggle aria-label="Switch language">
+          <span data-language-label>Language</span>
+          <strong data-language-code>VI</strong>
+        </button>
+        {% if user %}
+          <div class="row-meta" data-i18n="loggedIn">Đang đăng nhập</div>
+          <strong>{{ user.display_name or user.email }}</strong>
+        {% else %}
+          <a class="btn btn-primary" style="width:100%;display:block;text-align:center" href="/login" data-i18n="login">Đăng nhập</a>
+        {% endif %}
+      </div>
+    </aside>
+
+    <main class="main compare-page">
+      <section class="product-toolbar">
+        <div>
+          <div class="eyebrow" data-i18n="compareEyebrow">So sánh laptop</div>
+          <h1 class="page-title" data-i18n="compareTitle">Đặt 2 máy cạnh nhau</h1>
+          <p class="muted" data-i18n="compareCopy">Chọn hai mẫu laptop để xem nhanh chênh lệch giá, nơi bán tốt nhất và các thông số nổi bật.</p>
+        </div>
+        <a class="btn" href="/products" data-i18n="compareViewProducts">Xem danh sách</a>
+      </section>
+
+      {% if products|length < 2 %}
+      <section class="card card-pad">
+        <h2 data-i18n="compareNoDataTitle">Chưa đủ dữ liệu để so sánh</h2>
+        <p class="muted" data-i18n="compareNoDataCopy">Cần ít nhất 2 sản phẩm. Hãy import dữ liệu hoặc chạy crawler trước.</p>
+      </section>
+      {% else %}
+      <form id="comparePicker" class="compare-picker" action="/compare">
+        <label class="compare-select">
+          <span data-i18n="compareFirst">Máy thứ nhất</span>
+          <select name="first">
+            {% for product in products %}
+              <option value="{{ product.id }}" {% if selected_first and product.id == selected_first.id %}selected{% endif %}>
+                {{ product.display_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="compare-select">
+          <span data-i18n="compareSecond">Máy thứ hai</span>
+          <select name="second">
+            {% for product in products %}
+              <option value="{{ product.id }}" {% if selected_second and product.id == selected_second.id %}selected{% endif %}>
+                {{ product.display_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit" data-i18n="compareSubmit">So sánh</button>
+      </form>
+
+      <section class="compare-hero-grid">
+        {% for product in [selected_first, selected_second] %}
+        <article class="card compare-product-card">
+          <div class="compare-product-image">
+            {% if product.image_url %}
+              <img src="{{ product.image_url }}" alt="{{ product.display_name }}">
+            {% else %}
+              <span data-i18n="compareImagePending">Chưa có ảnh</span>
+            {% endif %}
+          </div>
+          <div class="card-pad">
+            <span class="badge">{{ product.brand }}</span>
+            <h2>{{ product.display_name }}</h2>
+            <p class="muted"><span data-i18n="compareModelKey">Mã nhận diện:</span> {{ product.model_key }}</p>
+            <div class="compare-price-line">
+              <span data-i18n="compareBestPrice">Giá tốt nhất hiện có</span>
+              <strong>{{ product.lowest_price|vnd }}</strong>
+              <em>{% if product.best_source %}{{ product.best_source }}{% else %}<span data-i18n="compareUnknownShop">Chưa rõ nơi bán</span>{% endif %}</em>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </section>
+
+      <section class="card compare-table-card">
+        <div class="card-header soft">
+          <strong data-i18n="compareTableTitle">Bảng so sánh thông số và giá</strong>
+          <span class="badge">{{ data_source }}</span>
+        </div>
+        <div class="compare-table">
+          <div class="compare-row compare-row-head">
+            <span data-i18n="compareCriteria">Tiêu chí</span>
+            <strong data-i18n="compareMachineOne">Máy 1</strong>
+            <strong data-i18n="compareMachineTwo">Máy 2</strong>
+          </div>
+          <div class="compare-row">
+            <span data-i18n="lowestPrice">Giá tốt nhất</span>
+            <strong>{{ selected_first.lowest_price|vnd }}</strong>
+            <strong>{{ selected_second.lowest_price|vnd }}</strong>
+          </div>
+          <div class="compare-row">
+            <span data-i18n="compareBestShop">Nơi bán tốt nhất</span>
+            <strong>{% if selected_first.best_source %}{{ selected_first.best_source }}{% else %}<span data-i18n="compareNoValue">Chưa có dữ liệu</span>{% endif %}</strong>
+            <strong>{% if selected_second.best_source %}{{ selected_second.best_source }}{% else %}<span data-i18n="compareNoValue">Chưa có dữ liệu</span>{% endif %}</strong>
+          </div>
+          <div class="compare-row">
+            <span data-i18n="compareAveragePrice">Giá trung bình</span>
+            <strong>{{ selected_first.average_price|vnd }}</strong>
+            <strong>{{ selected_second.average_price|vnd }}</strong>
+          </div>
+          <div class="compare-row">
+            <span data-i18n="compareAvailableSites">Số website còn hàng</span>
+            <strong>{{ selected_first.so_website_co_hang }}</strong>
+            <strong>{{ selected_second.so_website_co_hang }}</strong>
+          </div>
+          {% set spec_keys = (selected_first.specs.keys()|list + selected_second.specs.keys()|list)|unique|list %}
+          {% for key in spec_keys %}
+          <div class="compare-row">
+            <span>{{ key }}</span>
+            <strong>{% if selected_first.specs.get(key) %}{{ selected_first.specs.get(key) }}{% else %}<span data-i18n="compareNoValue">Chưa có dữ liệu</span>{% endif %}</strong>
+            <strong>{% if selected_second.specs.get(key) %}{{ selected_second.specs.get(key) }}{% else %}<span data-i18n="compareNoValue">Chưa có dữ liệu</span>{% endif %}</strong>
+          </div>
+          {% endfor %}
+          {% if spec_keys|length == 0 %}
+          <div class="compare-row">
+            <span data-i18n="compareDetailSpecs">Thông số chi tiết</span>
+            <strong data-i18n="compareNoValue">Chưa có dữ liệu</strong>
+            <strong data-i18n="compareNoValue">Chưa có dữ liệu</strong>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="grid compare-detail-grid">
+        {% for product in [selected_first, selected_second] %}
+        <div class="card span-6">
+          <div class="card-header soft">
+            <strong><span data-i18n="compareShopPricePrefix">Giá theo shop - Máy</span> {{ loop.index }}</strong>
+          </div>
+          {% for price in product.price_options %}
+            {% if price.available %}
+              <a class="price-row" href="{{ price.url or '#' }}" target="_blank">
+                <div class="row-left">
+                  <div class="source-logo">{{ price.label[:3] }}</div>
+                  <div>
+                    <div class="row-name">{{ price.label }}</div>
+                    <div class="row-meta" data-i18n="compareInStock">Đang kinh doanh</div>
+                  </div>
+                </div>
+                <div class="row-price"><strong>{{ price.current_price|vnd }}</strong></div>
+              </a>
+            {% else %}
+              <div class="price-row price-row-disabled">
+                <div class="row-left">
+                  <div class="source-logo source-logo-disabled">{{ price.label[:3] }}</div>
+                  <div>
+                    <div class="row-name">{{ price.label }}</div>
+                    <div class="row-meta" data-i18n="compareOutOfStock">Không kinh doanh</div>
+                  </div>
+                </div>
+                <div class="row-price"><strong data-i18n="compareNoPrice">Không có giá</strong></div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </section>
+
+      <section class="panel chat-consultant-panel compare-chat-panel">
+        <div class="panel-title"><span data-i18n="compareChatTitle">Trợ lý phân tích 2 máy</span> <span class="badge badge-green">Beta</span></div>
+        <div id="compareChatBox" class="chat-box">
+          <div id="compareInitialAnswer" class="chat-message" data-answer-vi="{{ comparison.answer }}" data-answer-en="{{ comparison.answer_en }}">{{ comparison.answer }}</div>
+        </div>
+        <div class="chat-suggestions">
+          <button type="button" data-icon="VND" data-message="Máy nào đáng tiền hơn?" data-i18n-message="compareQuestionValue" data-i18n="compareSuggestionValue">Đáng tiền</button>
+          <button type="button" data-icon="CPU" data-message="So sánh thông số 2 máy" data-i18n-message="compareQuestionSpecs" data-i18n="compareSuggestionSpecs">Thông số</button>
+          <button type="button" data-icon="GPU" data-message="Máy nào hợp để chơi game hơn?" data-i18n-message="compareQuestionGaming" data-i18n="compareSuggestionGaming">Chơi game</button>
+          <button type="button" data-icon="EDU" data-message="Máy nào hợp để học và văn phòng hơn?" data-i18n-message="compareQuestionOffice" data-i18n="compareSuggestionOffice">Học/văn phòng</button>
+        </div>
+        <form id="compareChatForm" class="chat-form">
+          <input id="compareChatInput" class="input" placeholder="Hỏi thêm về hai máy này..." data-i18n-placeholder="comparePlaceholder" />
+          <button id="compareChatSubmit" class="btn btn-primary" type="submit" data-i18n="send">Gửi</button>
+        </form>
+      </section>
+      {% endif %}
+    </main>
+  </div>
+
+  <script src="/static/app-language.js?v=20260622-compare-i18n"></script>
+  <script>
+    const firstProductId = {{ selected_first.id if selected_first else "null" }};
+    const secondProductId = {{ selected_second.id if selected_second else "null" }};
+
+    document.querySelectorAll("#comparePicker select").forEach((select) => {
+      select.addEventListener("change", () => document.querySelector("#comparePicker").submit());
+    });
+
+    function appendCompareChat(message, className = "") {
+      const box = document.querySelector("#compareChatBox");
+      const node = document.createElement("div");
+      node.className = `chat-message ${className}`.trim();
+      node.textContent = message;
+      box.appendChild(node);
+      box.scrollTop = box.scrollHeight;
+      return node;
+    }
+
+    async function sendCompareChat(message) {
+      if (!message || !firstProductId || !secondProductId) return;
+      const input = document.querySelector("#compareChatInput");
+      const submit = document.querySelector("#compareChatSubmit");
+      appendCompareChat(message, "chat-user");
+      input.value = "";
+      input.disabled = true;
+      submit.disabled = true;
+      const t = window.LapWiseLanguage?.t || ((key) => key);
+      const loading = appendCompareChat(t("compareLoading"), "chat-loading");
+
+      try {
+        const response = await fetch("/api/compare-chat", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            product_a_id: firstProductId,
+            product_b_id: secondProductId,
+            message,
+            language: localStorage.getItem("lapwiseLanguage") || "vi",
+          }),
+        });
+        const payload = await response.json();
+        loading.remove();
+        appendCompareChat(response.ok ? payload.answer : (payload.detail || t("compareFallback")), response.ok ? "" : "chat-error");
+      } catch (error) {
+        loading.remove();
+        appendCompareChat(t("compareConnectError"), "chat-error");
+      } finally {
+        input.disabled = false;
+        submit.disabled = false;
+        input.focus();
+      }
+    }
+
+    document.querySelector("#compareChatForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await sendCompareChat(document.querySelector("#compareChatInput").value.trim());
+    });
+
+    document.querySelectorAll(".compare-chat-panel .chat-suggestions button").forEach((button) => {
+      button.addEventListener("click", () => sendCompareChat(button.dataset.message));
+    });
+
+    window.addEventListener("lapwise:languagechange", (event) => {
+      const initialAnswer = document.querySelector("#compareInitialAnswer");
+      if (!initialAnswer) return;
+      const language = event.detail?.language === "en" ? "en" : "vi";
+      initialAnswer.textContent = language === "en" ? initialAnswer.dataset.answerEn : initialAnswer.dataset.answerVi;
+    });
+  </script>
+</body>
+</html>

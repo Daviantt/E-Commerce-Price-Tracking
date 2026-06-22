@@ -961,7 +961,7 @@ def build_specs_answer(product, language="vi"):
 
     lines = ["I can only infer from the product name, so treat this as reference information:" if english else "Mình chỉ suy luận được từ tên sản phẩm, nên đây là thông tin tham khảo:"]
     if product.get("specs"):
-        lines = ["Specs currently available from crawled data:" if english else "Thong so hien co tu du lieu crawl:"]
+        lines = ["Specs currently available from crawled data:" if english else "Thông số hiện có từ dữ liệu crawl:"]
     lines.extend(f"- {key}: {value}" for key, value in specs.items())
     lines.append(
         "For 100% accuracy, compare it with the retailer's product detail page."
@@ -1006,8 +1006,99 @@ def build_assistant_answer(product, message, language="vi"):
     )
 
 
+def compare_price_gap(product_a, product_b):
+    price_a = clean_price_number(product_a.get("lowest_price") if product_a else None)
+    price_b = clean_price_number(product_b.get("lowest_price") if product_b else None)
+    if price_a is None or price_b is None:
+        return None
+    gap = abs(price_a - price_b)
+    lower = min(price_a, price_b)
+    return {
+        "gap": gap,
+        "percent": (gap / lower * 100) if lower else None,
+        "cheaper": product_a if price_a <= price_b else product_b,
+        "expensive": product_b if price_a <= price_b else product_a,
+    }
+
+
+def build_compare_answer(product_a, product_b, message="", language="vi"):
+    english = is_english(language)
+    if not product_a or not product_b:
+        return "Please choose two products first." if english else "Bạn hãy chọn đủ 2 máy trước."
+
+    specs_a = product_a.get("specs") or {}
+    specs_b = product_b.get("specs") or {}
+    shared_specs = sorted(set(specs_a) | set(specs_b))
+    price_gap = compare_price_gap(product_a, product_b)
+    message_lower = normalize_text(message or "")
+
+    if english:
+        lines = [
+            f"Comparing: {product_a['display_name']} vs {product_b['display_name']}.",
+            f"- Product 1: best price {format_vnd(product_a.get('lowest_price'))} at {product_a.get('best_source') or 'unknown retailer'}.",
+            f"- Product 2: best price {format_vnd(product_b.get('lowest_price'))} at {product_b.get('best_source') or 'unknown retailer'}.",
+        ]
+        if price_gap:
+            lines.append(
+                f"Price gap: {format_vnd(price_gap['gap'])}"
+                + (f" ({price_gap['percent']:.1f}%)." if price_gap["percent"] is not None else ".")
+                + f" Lower price: {price_gap['cheaper']['display_name']}."
+            )
+        if shared_specs:
+            lines.append("Key spec differences:")
+            for key in shared_specs[:8]:
+                value_a = specs_a.get(key) or "not available"
+                value_b = specs_b.get(key) or "not available"
+                marker = "same" if value_a == value_b else "different"
+                lines.append(f"- {key}: {value_a} | {value_b} ({marker})")
+        else:
+            lines.append("Specs are not detailed enough yet; I will not invent missing CPU/RAM/GPU values.")
+        if any(keyword in message_lower for keyword in ["game", "gaming", "gpu"]):
+            lines.append("For gaming, prioritize the stronger GPU and check cooling on the retailer detail page.")
+        elif any(keyword in message_lower for keyword in ["hoc", "study", "office", "van phong"]):
+            lines.append("For study/office work, the cheaper model is usually better if RAM, storage, and screen are close.")
+        else:
+            lines.append("Bottom line: choose the cheaper one if specs are close; pay more only when the CPU/GPU/RAM/screen difference matters.")
+        return "\n".join(lines)
+
+    lines = [
+        f"Đang so sánh: {product_a['display_name']} với {product_b['display_name']}.",
+        f"- Máy 1: giá tốt nhất {format_vnd(product_a.get('lowest_price'))} tại {product_a.get('best_source') or 'chưa rõ shop'}.",
+        f"- Máy 2: giá tốt nhất {format_vnd(product_b.get('lowest_price'))} tại {product_b.get('best_source') or 'chưa rõ shop'}.",
+    ]
+    if price_gap:
+        lines.append(
+            f"Chênh giá: {format_vnd(price_gap['gap'])}"
+            + (f" ({price_gap['percent']:.1f}%)." if price_gap["percent"] is not None else ".")
+            + f" Máy rẻ hơn: {price_gap['cheaper']['display_name']}."
+        )
+    if shared_specs:
+        lines.append("Khác biệt thông số chính:")
+        for key in shared_specs[:8]:
+            value_a = specs_a.get(key) or "chưa có dữ liệu"
+            value_b = specs_b.get(key) or "chưa có dữ liệu"
+            marker = "giống nhau" if value_a == value_b else "khác nhau"
+            lines.append(f"- {key}: {value_a} | {value_b} ({marker})")
+    else:
+        lines.append("Dữ liệu thông số chưa đủ chi tiết; mình sẽ không tự bịa CPU/RAM/GPU khi crawler chưa có.")
+    if any(keyword in message_lower for keyword in ["game", "gaming", "gpu"]):
+        lines.append("Nếu mua để chơi game, nên ưu tiên máy có GPU mạnh hơn và kiểm tra thêm tản nhiệt trên trang cửa hàng.")
+    elif any(keyword in message_lower for keyword in ["hoc", "van phong", "office", "study"]):
+        lines.append("Nếu mua để học hoặc làm văn phòng, máy rẻ hơn thường đáng tiền hơn khi RAM, SSD và màn hình gần tương đương.")
+    else:
+        lines.append("Kết luận nhanh: chọn máy rẻ hơn nếu thông số gần nhau; chỉ trả thêm khi CPU, GPU, RAM hoặc màn hình thật sự hợp nhu cầu của bạn hơn.")
+    return "\n".join(lines)
+
+
 class ChatRequest(BaseModel):
     product_id: int
+    message: str
+    language: str | None = "vi"
+
+
+class CompareChatRequest(BaseModel):
+    product_a_id: int
+    product_b_id: int
     message: str
     language: str | None = "vi"
 
@@ -1149,6 +1240,46 @@ def products_page(request: Request):
     )
 
 
+@app.get("/compare", response_class=HTMLResponse)
+def compare_page(request: Request):
+    products, data_source = fetch_dashboard_products(limit=500)
+    first_id = clean_number(request.query_params.get("first"))
+    second_id = clean_number(request.query_params.get("second"))
+
+    selected_first = None
+    selected_second = None
+    if first_id is not None:
+        selected_first = next((product for product in products if product["id"] == first_id), None)
+    if second_id is not None:
+        selected_second = next((product for product in products if product["id"] == second_id), None)
+
+    if selected_first is None and products:
+        selected_first = products[0]
+    if selected_second is None:
+        selected_second = next(
+            (product for product in products if product["id"] != (selected_first or {}).get("id")),
+            None,
+        )
+
+    comparison = {
+        "price_gap": compare_price_gap(selected_first, selected_second),
+        "answer": build_compare_answer(selected_first, selected_second, "tong quan"),
+        "answer_en": build_compare_answer(selected_first, selected_second, "overview", "en"),
+    }
+    return templates.TemplateResponse(
+        request,
+        "compare.html",
+        {
+            "user": get_current_user(request),
+            "products": products,
+            "selected_first": selected_first,
+            "selected_second": selected_second,
+            "comparison": comparison,
+            "data_source": data_source,
+        },
+    )
+
+
 @app.get("/favorites", response_class=HTMLResponse)
 def favorites_page(request: Request):
     user = get_current_user(request)
@@ -1209,6 +1340,20 @@ def product_detail(product_id: int):
 def chat(payload: ChatRequest):
     product = find_product(payload.product_id)
     return {"answer": build_assistant_answer(product, payload.message, payload.language)}
+
+
+@app.post("/api/compare-chat")
+def compare_chat(payload: CompareChatRequest):
+    product_a = find_product(payload.product_a_id)
+    product_b = find_product(payload.product_b_id)
+    return {
+        "answer": build_compare_answer(
+            product_a,
+            product_b,
+            payload.message,
+            payload.language,
+        )
+    }
 
 
 @app.post("/api/register")

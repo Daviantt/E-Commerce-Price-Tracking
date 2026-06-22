@@ -1506,6 +1506,187 @@ input:disabled {
   cursor: pointer;
 }
 
+.compare-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-top: 32px;
+}
+
+.compare-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  padding: 16px;
+  margin: 0 0 20px;
+  border: 1px solid #d8dee7;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.compare-select {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.compare-select span {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.compare-select select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 0 12px;
+  font-weight: 800;
+}
+
+.compare-select select:focus {
+  outline: 3px solid #bfdbfe;
+  border-color: #0057c2;
+  background: #ffffff;
+}
+
+.compare-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.compare-product-card h2 {
+  min-height: 56px;
+  margin: 12px 0 8px;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.compare-product-image {
+  height: 230px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: radial-gradient(circle at top, #eef6ff 0%, #ffffff 62%);
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.compare-product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.compare-price-line {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.compare-price-line span,
+.compare-price-line em {
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.compare-price-line strong {
+  color: #0057c2;
+  font: 900 22px/1.2 "JetBrains Mono", Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.compare-table-card {
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.compare-table {
+  overflow-x: auto;
+}
+
+.compare-row {
+  min-width: 720px;
+  display: grid;
+  grid-template-columns: minmax(150px, .75fr) repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  align-items: start;
+  padding: 14px 18px;
+  border-top: 1px solid #edf2f7;
+}
+
+.compare-row:nth-child(even):not(.compare-row-head) {
+  background: #fbfdff;
+}
+
+.compare-row:first-child {
+  border-top: 0;
+}
+
+.compare-row-head {
+  position: sticky;
+  top: 0;
+  background: #eef6ff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.compare-row span {
+  color: #334155;
+  font-weight: 900;
+}
+
+.compare-row strong {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.compare-detail-grid {
+  margin-bottom: 16px;
+}
+
+.compare-chat-panel {
+  margin-bottom: 34px;
+  background: #fff;
+  border-color: #cbd5e1;
+}
+
+.compare-chat-panel .chat-box {
+  min-height: 260px;
+  background: #f8fafc;
+}
+
+.compare-chat-panel .chat-suggestions button {
+  min-height: 38px;
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.compare-chat-panel .chat-suggestions button:hover {
+  border-color: #0057c2;
+  color: #0057c2;
+  background: #eff6ff;
+}
+
 @media (max-width: 980px) {
   .marketing-nav {
     grid-template-columns: 1fr auto;
@@ -1543,5 +1724,16 @@ input:disabled {
   }
   .price-filter-field {
     width: 100%;
+  }
+  .compare-picker,
+  .compare-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .compare-picker .btn {
+    width: 100%;
+  }
+  .compare-row {
+    min-width: 640px;
+    grid-template-columns: minmax(130px, .7fr) repeat(2, minmax(200px, 1fr));
   }
 }

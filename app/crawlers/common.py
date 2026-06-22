@@ -225,12 +225,18 @@ def extract_specs_from_text(*values):
     normalized = text.replace("™", "").replace(",", ".")
 
     cpu_patterns = [
+        r"\b(?:Intel\s+)?Core\s+[3579]\s*[- ]?\s*\d{2,4}[A-Z]{0,3}\b",
+        r"\b(?:Intel\s+)?Core\s+[3579]\b",
         r"\bUltra\s+[579]\s*[- ]?\s*\w{2,8}\b",
+        r"\bUltra\s+[579]X\s*[- ]?\s*\w{2,8}\b",
         r"\b(?:Intel\s+)?Core\s+Ultra\s+[579]\s*[- ]?\s*\w{2,8}\b",
         r"\b(?:Intel\s+)?Core\s+i[3579]\s*[- ]?\s*\d{3,5}[A-Z]{0,3}\b",
+        r"\bi[3579]\s*[- ]?\s*\d{3,5}[A-Z]{0,3}\b",
+        r"\bC[3579]\s*[- ]?\s*\d{2,4}[A-Z]{0,3}\b",
+        r"\bRyzen\s+AI\s+[3579]\s*(?:HX\s*)?\d{2,4}[A-Z]{0,3}\b",
         r"\b(?:AMD\s+)?Ryzen\s+[3579]\s*[- ]?\s*\d{3,5}[A-Z]{0,3}\b",
         r"\bAMD\s+R[3579]\s*[- ]?\s*\d{2,5}[A-Z]{0,3}\b",
-        r"\bSnapdragon\s+X\s+\w+\b",
+        r"\bSnapdragon\s+X2?\s+(?:Elite|Plus)?\s*[A-Z0-9]+(?:\s+\d{2,4}){0,2}\b",
         r"\bApple\s+M\d(?:\s+\w+)?\b",
         r"\b(?:Intel\s+)?(?:Celeron|Pentium)\s+\w+\b",
     ]
@@ -244,7 +250,7 @@ def extract_specs_from_text(*values):
         r"\b(?:NVIDIA\s+|GeForce\s+)?RTX\s*\d{4}\s*(?:Ti|SUPER)?\b",
         r"\b(?:NVIDIA\s+|GeForce\s+)?GTX\s*\d{3,4}\s*(?:Ti)?\b",
         r"\bIntel\s+(?:Arc|Iris\s+Xe|UHD)\s*(?:Graphics)?\b",
-        r"\bAMD\s+Radeon\s+[\w\s]{2,20}\b",
+        r"\bAMD\s+Radeon\s+(?:[A-Z]?\d{3,4}M?|Graphics|[A-Za-z]+\s+Graphics)(?:\s+Graphics)?\b",
     ]
     for pattern in gpu_patterns:
         match = re.search(pattern, normalized, flags=re.IGNORECASE)
@@ -253,23 +259,39 @@ def extract_specs_from_text(*values):
             break
 
     ram_match = re.search(
+        r"\b(?:RAM|Memory|DDR\d|LPDDR\dX?)\s*(\d{1,3})\s*GB\b",
+        normalized,
+        flags=re.IGNORECASE,
+    ) or re.search(
         r"\b(\d{1,3})\s*GB\s*(?:DDR\d|LPDDR\dX?|RAM|Memory)\b",
         normalized,
         flags=re.IGNORECASE,
     )
     if not ram_match:
+        contextual_ram = re.search(
+            r"(?:^|[/(\s-])(?:\d+\s*\*\s*)?(\d{1,3})\s*GB(?=\s*(?:/|\)|,|-|$))",
+            normalized,
+            flags=re.IGNORECASE,
+        )
+        if contextual_ram and 4 <= int(contextual_ram.group(1)) <= 128:
+            specs["ram"] = f"{int(contextual_ram.group(1))}GB"
+
         ram_candidates = [
             int(match.group(1))
             for match in re.finditer(r"\b(\d{1,3})\s*GB\b", normalized, flags=re.IGNORECASE)
             if 4 <= int(match.group(1)) <= 128
         ]
-        if ram_candidates:
+        if ram_candidates and "ram" not in specs:
             ram_match_value = ram_candidates[0]
             specs["ram"] = f"{ram_match_value}GB"
     else:
         specs["ram"] = f"{ram_match.group(1)}GB"
 
     storage_match = re.search(
+        r"\b(?:SSD|HDD|NVMe|PCIe)\s*(\d+(?:\.\d+)?)\s*(TB|GB)\b",
+        normalized,
+        flags=re.IGNORECASE,
+    ) or re.search(
         r"\b(\d+(?:\.\d+)?)\s*(TB|GB)\s*(?:SSD|HDD|NVMe|PCIe)\b",
         normalized,
         flags=re.IGNORECASE,
