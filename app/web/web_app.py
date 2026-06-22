@@ -15,6 +15,13 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from app.crawlers.common import (
+    SPEC_DISPLAY_LABELS,
+    TECHNICAL_COLUMNS,
+    classify_price_segment,
+    extract_specs_from_text,
+    normalize_spec_value,
+)
 from app.db.database import (
     FALLBACK_PROCESSED_DIR,
     PROCESSED_DIR,
@@ -63,6 +70,30 @@ def clean_number(value):
     if math.isnan(number):
         return None
     return int(number) if number.is_integer() else number
+
+
+def clean_price_number(value):
+    value = clean_number(value)
+    if value is None or value <= 0:
+        return None
+    return value
+
+
+def clean_float(value):
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except TypeError:
+        pass
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(number):
+        return None
+    return number
 
 
 def format_vnd(value):
@@ -155,27 +186,112 @@ def require_user(request):
         raise HTTPException(status_code=401, detail="Bạn cần đăng nhập trước.")
     return user
 
+PRICE_SEGMENT_LABELS = {
+    "budget": "Phổ thông",
+    "mainstream": "Tầm trung",
+    "upper_mid": "Cận cao cấp",
+    "premium": "Cao cấp",
+}
+
+SPEC_LABELS_VI = {
+    "CPU": "CPU",
+    "GPU": "GPU",
+    "RAM": "RAM",
+    "Storage": "Ổ cứng",
+    "Screen size": "Màn hình",
+    "Resolution": "Độ phân giải",
+    "Refresh rate": "Tần số quét",
+    "Operating system": "Hệ điều hành",
+    "Weight": "Trọng lượng",
+    "Battery": "Pin",
+}
+
+
+def specs_from_record(record):
+    inferred = extract_specs_from_text(
+        record.get("display_name") or record.get("ten"),
+        record.get("model_key"),
+    )
+    specs = {}
+    for column in TECHNICAL_COLUMNS:
+        value = normalize_spec_value(column, record.get(column)) or inferred.get(column)
+        if value:
+            label = SPEC_DISPLAY_LABELS[column]
+            specs[SPEC_LABELS_VI.get(label, label)] = value
+    return specs
+
+
+def build_price_analysis(prices, record):
+    lowest_price = prices[0]["current_price"] if prices else None
+    highest_price = prices[-1]["current_price"] if prices else None
+    spread = (
+        highest_price - lowest_price
+        if lowest_price is not None and highest_price is not None
+        else None
+    )
+    spread_percent = (
+        spread / lowest_price * 100
+        if spread is not None and lowest_price and len(prices) > 1
+        else None
+    )
+    discount_percent = clean_float(record.get("discount_percent"))
+    if discount_percent is None:
+        discount_percent = max(
+            [
+                (price["original_price"] - price["current_price"])
+                / price["original_price"]
+                * 100
+                for price in prices
+                if price.get("original_price") and price["original_price"] > price["current_price"]
+            ]
+            or [0]
+        )
+    price_segment = record.get("price_segment") or classify_price_segment(lowest_price)
+    segment_label = PRICE_SEGMENT_LABELS.get(price_segment, "Chưa xếp hạng")
+
+    if lowest_price is None:
+        summary = "Chưa có giá bán hợp lệ để phân tích."
+    elif spread_percent is not None and spread_percent >= 5:
+        summary = f"Giá giữa các shop đang chênh khoảng {spread_percent:.1f}%, nên ưu tiên nơi có giá thấp nhất."
+    elif discount_percent and discount_percent >= 5:
+        summary = f"Mức giảm tốt nhất hiện khoảng {discount_percent:.1f}% so với giá gốc."
+    else:
+        summary = "Giá giữa các shop khá sát nhau, nên kiểm tra thêm bảo hành và tình trạng hàng."
+
+    return {
+        "price_segment": price_segment,
+        "segment_label": segment_label,
+        "spread": spread,
+        "spread_percent": spread_percent,
+        "discount_percent": discount_percent,
+        "summary": summary,
+    }
+
 
 def product_from_record(record):
     prices = []
     price_options = []
     image_url = clean_image_url(record.get("image_url"))
     for source in SOURCE_LABELS:
-        current_price = clean_number(record.get(f"gia_ban_{source}"))
-        original_price = clean_number(record.get(f"gia_goc_{source}"))
+        current_price = clean_price_number(record.get(f"gia_ban_{source}"))
+        original_price = clean_price_number(record.get(f"gia_goc_{source}"))
+        if original_price is not None and current_price is not None and original_price < current_price:
+            original_price = current_price
         url = record.get(f"url_{source}")
+        is_available = current_price is not None
         option = {
             "source": source,
             "label": SOURCE_LABELS[source],
             "current_price": current_price,
             "original_price": original_price,
             "url": url,
-            "available": current_price is not None,
+            "available": is_available,
             "status": "Đang kinh doanh" if current_price is not None else "Không kinh doanh",
             "image_url": image_url,
         }
+        option["status"] = "Đang kinh doanh" if is_available else "Không kinh doanh"
         price_options.append(option)
-        if current_price is not None:
+        if is_available:
             prices.append(option)
 
     prices.sort(key=lambda item: item["current_price"])
@@ -190,13 +306,15 @@ def product_from_record(record):
         "model_key": record.get("model_key"),
         "display_name": record.get("display_name") or record.get("ten"),
         "brand": record.get("brand"),
-        "so_website_co_hang": int(record.get("so_website_co_hang") or len(prices)),
+        "so_website_co_hang": len(prices),
         "prices": prices,
         "price_options": price_options,
         "lowest_price": lowest_price,
         "average_price": average_price,
         "best_source": prices[0]["label"] if prices else None,
         "image_url": image_url,
+        "specs": specs_from_record(record),
+        "price_analysis": build_price_analysis(prices, record),
     }
 
 
@@ -233,6 +351,18 @@ def fetch_products_from_database(limit=80):
                     gia_goc_cellphones,
                     url_cellphones,
                     image_url,
+                    cpu,
+                    gpu,
+                    ram,
+                    storage,
+                    screen_size,
+                    screen_resolution,
+                    refresh_rate,
+                    os,
+                    weight,
+                    battery,
+                    price_segment,
+                    discount_percent,
                     so_website_co_hang
                 FROM daily_price_comparisons
                 WHERE comparison_date = %s
@@ -532,7 +662,7 @@ def fetch_price_history(product):
     history = []
     for date, price in rows:
         price = clean_number(price)
-        if price is not None and price < 999999999999:
+        if price is not None and 0 < price < 999999999999:
             history.append({"date": str(date), "price": price})
     return history
 
@@ -596,6 +726,15 @@ def extract_specs_from_name(name):
         specs["Màn hình"] = f'{screen.group(1)}"'
 
     return specs
+
+
+def extract_specs_from_name(name):
+    specs = extract_specs_from_text(name)
+    return {
+        SPEC_DISPLAY_LABELS[column]: value
+        for column, value in specs.items()
+        if column in SPEC_DISPLAY_LABELS
+    }
 
 
 def normalize_text(text):
@@ -808,7 +947,7 @@ def build_stock_answer(product, language="vi"):
 
 def build_specs_answer(product, language="vi"):
     english = is_english(language)
-    specs = extract_specs_from_name(product["display_name"])
+    specs = product.get("specs") or extract_specs_from_name(product["display_name"])
     if not specs:
         if english:
             return (
@@ -821,6 +960,8 @@ def build_specs_answer(product, language="vi"):
         )
 
     lines = ["I can only infer from the product name, so treat this as reference information:" if english else "Mình chỉ suy luận được từ tên sản phẩm, nên đây là thông tin tham khảo:"]
+    if product.get("specs"):
+        lines = ["Specs currently available from crawled data:" if english else "Thong so hien co tu du lieu crawl:"]
     lines.extend(f"- {key}: {value}" for key, value in specs.items())
     lines.append(
         "For 100% accuracy, compare it with the retailer's product detail page."
@@ -1060,7 +1201,7 @@ def product_detail(product_id: int):
         "product": product,
         "history": fetch_price_history(product),
         "stock": fetch_stock_rows(product),
-        "specs": extract_specs_from_name(product["display_name"]),
+        "specs": product.get("specs") or extract_specs_from_name(product["display_name"]),
     }
 
 

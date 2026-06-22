@@ -6,7 +6,17 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.crawlers.common import clean_url, normalize_price_pair
+from app.crawlers.common import (
+    TECHNICAL_COLUMNS,
+    classify_price_segment,
+    clean_spec_value,
+    clean_url,
+    compute_discount_percent,
+    extract_specs_from_text,
+    normalize_spec_value,
+    normalize_price_pair,
+    specs_to_display,
+)
 
 
 RAW_DIR = Path("D:/Data/raw")
@@ -93,6 +103,22 @@ def read_source_file(source, brand):
         df["image_url"] = df["image_url"].map(clean_url)
     if "url" in df.columns:
         df["url"] = df["url"].map(clean_url)
+    inferred_specs = df["name"].map(extract_specs_from_text)
+    for column in TECHNICAL_COLUMNS:
+        if column not in df.columns:
+            df[column] = None
+        df[column] = [
+            normalize_spec_value(column, value) or inferred.get(column)
+            for value, inferred in zip(df[column], inferred_specs)
+        ]
+    if "discount_percent" not in df.columns:
+        df["discount_percent"] = [
+            compute_discount_percent(current_price, original_price)
+            for current_price, original_price in zip(
+                df.get("current_price", []),
+                df.get("original_price", []),
+            )
+        ]
     df["model_key"] = df["name"].map(extract_model_key)
     df = df[df["model_key"].notna()].copy()
     df["crawl_date"] = pd.to_datetime(df["crawled_at"]).dt.date.astype(str)
@@ -107,6 +133,32 @@ def choose_display_name(group):
     return group.iloc[0]["name"]
 
 
+def source_rank(source):
+    try:
+        return IMAGE_SOURCE_PRIORITY.index(source)
+    except ValueError:
+        return len(IMAGE_SOURCE_PRIORITY)
+
+
+def count_row_specs(row):
+    return sum(bool(normalize_spec_value(column, row.get(column))) for column in TECHNICAL_COLUMNS)
+
+
+def choose_specs(group):
+    ranked = sorted(
+        (row for _, row in group.iterrows()),
+        key=lambda row: (-count_row_specs(row), source_rank(row.get("source"))),
+    )
+    specs = {}
+    for column in TECHNICAL_COLUMNS:
+        for row in ranked:
+            value = normalize_spec_value(column, row.get(column))
+            if value:
+                specs[column] = value
+                break
+    return specs
+
+
 def build_brand_merged_frame(brand):
     frames = [read_source_file(source, brand) for source in SOURCES]
     all_rows = pd.concat(frames, ignore_index=True)
@@ -119,6 +171,9 @@ def build_brand_merged_frame(brand):
             "brand": brand,
             "ngay_crawl": max(group["crawl_date"]),
         }
+        specs = choose_specs(group)
+        row.update({column: specs.get(column) for column in TECHNICAL_COLUMNS})
+        row["technical_specs"] = specs_to_display(specs)
         image_url = None
         for source in IMAGE_SOURCE_PRIORITY:
             source_rows = group[group["source"] == source]
@@ -144,6 +199,27 @@ def build_brand_merged_frame(brand):
 
         row["so_website_co_hang"] = sum(
             pd.notna(row[f"gia_ban_{source}"]) for source in SOURCES
+        )
+        available_current_prices = [
+            row[f"gia_ban_{source}"]
+            for source in SOURCES
+            if pd.notna(row[f"gia_ban_{source}"])
+        ]
+        row["price_segment"] = (
+            classify_price_segment(min(available_current_prices))
+            if available_current_prices
+            else None
+        )
+        row["discount_percent"] = max(
+            [
+                compute_discount_percent(
+                    row[f"gia_ban_{source}"],
+                    row[f"gia_goc_{source}"],
+                )
+                for source in SOURCES
+                if pd.notna(row[f"gia_ban_{source}"])
+            ]
+            or [0]
         )
         merged_rows.append(row)
 

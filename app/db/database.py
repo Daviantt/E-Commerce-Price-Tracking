@@ -4,8 +4,19 @@ import os
 from pathlib import Path
 
 import pandas as pd
+from psycopg.types.json import Jsonb
 
-from app.crawlers.common import clean_price, clean_url, normalize_price_pair
+from app.crawlers.common import (
+    TECHNICAL_COLUMNS,
+    clean_price,
+    clean_spec_value,
+    clean_url,
+    compute_discount_percent,
+    extract_specs_from_text,
+    normalize_spec_value,
+    normalize_price_pair,
+    specs_to_display,
+)
 from app.pipeline.merge_daily import extract_model_key
 
 
@@ -114,6 +125,16 @@ def clean_number(value):
     return clean_price(value)
 
 
+def clean_decimal(value):
+    value = clean_value(value)
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def clean_bool(value):
     value = clean_value(value)
     if value is None:
@@ -159,6 +180,45 @@ def clean_url_list(value):
     return [url] if url else []
 
 
+def clean_json_dict(value):
+    value = clean_value(value)
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return {str(key): clean_spec_value(item) for key, item in value.items() if clean_spec_value(item)}
+
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null"}:
+        return {}
+
+    try:
+        parsed = ast.literal_eval(text)
+    except (SyntaxError, ValueError):
+        parsed = None
+
+    if isinstance(parsed, dict):
+        return {
+            str(key): clean_spec_value(item)
+            for key, item in parsed.items()
+            if clean_spec_value(item)
+        }
+    return {}
+
+
+def row_specs(row):
+    inferred = extract_specs_from_text(
+        row.get("name"),
+        row.get("ten"),
+        row.get("display_name"),
+        row.get("sku"),
+        row.get("model_key"),
+    )
+    specs = {}
+    for column in TECHNICAL_COLUMNS:
+        specs[column] = normalize_spec_value(column, row.get(column)) or inferred.get(column)
+    return {key: value for key, value in specs.items() if value}
+
+
 def row_extra_data(row, known_columns):
     extra = {}
     for key, value in row.items():
@@ -171,8 +231,6 @@ def row_extra_data(row, known_columns):
 
 
 def import_raw_csv(path, run_id=None):
-    from psycopg.types.json import Jsonb
-
     path = Path(path)
     df = pd.read_csv(path)
     if df.empty:
@@ -195,6 +253,10 @@ def import_raw_csv(path, run_id=None):
         "crawled_at",
         "image_url",
         "image_urls",
+        "technical_specs",
+        "price_segment",
+        "discount_percent",
+        *TECHNICAL_COLUMNS,
     }
 
     inserted_or_skipped = 0
@@ -217,19 +279,37 @@ def import_raw_csv(path, run_id=None):
                 image_urls = clean_url_list(row.get("image_urls"))
                 if image_url and image_url not in image_urls:
                     image_urls.insert(0, image_url)
+                specs = row_specs(row)
+                technical_specs = clean_json_dict(row.get("technical_specs"))
+                if not technical_specs:
+                    technical_specs = specs_to_display(specs)
+                discount_percent = clean_decimal(row.get("discount_percent"))
+                if discount_percent is None:
+                    discount_percent = compute_discount_percent(
+                        current_price,
+                        original_price,
+                    )
 
                 cur.execute(
                     """
                     INSERT INTO raw_products (
                         run_id, source, source_product_id, sku, name, brand, segment,
                         current_price, original_price, stock, available, url,
-                        image_url, image_urls, collection_handle, model_key, crawled_at, crawl_date,
+                        image_url, image_urls, collection_handle, model_key,
+                        cpu, gpu, ram, storage, screen_size, screen_resolution,
+                        refresh_rate, os, weight, battery, technical_specs,
+                        price_segment, discount_percent,
+                        crawled_at, crawl_date,
                         raw_file, extra_data
                     )
                     VALUES (
                         %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s,
+                        %s, %s,
+                        %s, %s,
                         %s, %s
                     )
                     ON CONFLICT (
@@ -249,6 +329,19 @@ def import_raw_csv(path, run_id=None):
                         image_urls = EXCLUDED.image_urls,
                         collection_handle = EXCLUDED.collection_handle,
                         model_key = EXCLUDED.model_key,
+                        cpu = EXCLUDED.cpu,
+                        gpu = EXCLUDED.gpu,
+                        ram = EXCLUDED.ram,
+                        storage = EXCLUDED.storage,
+                        screen_size = EXCLUDED.screen_size,
+                        screen_resolution = EXCLUDED.screen_resolution,
+                        refresh_rate = EXCLUDED.refresh_rate,
+                        os = EXCLUDED.os,
+                        weight = EXCLUDED.weight,
+                        battery = EXCLUDED.battery,
+                        technical_specs = EXCLUDED.technical_specs,
+                        price_segment = EXCLUDED.price_segment,
+                        discount_percent = EXCLUDED.discount_percent,
                         raw_file = EXCLUDED.raw_file,
                         extra_data = EXCLUDED.extra_data
                     """,
@@ -269,6 +362,19 @@ def import_raw_csv(path, run_id=None):
                         Jsonb(image_urls),
                         clean_text(row.get("collection_handle")),
                         model_key,
+                        specs.get("cpu"),
+                        specs.get("gpu"),
+                        specs.get("ram"),
+                        specs.get("storage"),
+                        specs.get("screen_size"),
+                        specs.get("screen_resolution"),
+                        specs.get("refresh_rate"),
+                        specs.get("os"),
+                        specs.get("weight"),
+                        specs.get("battery"),
+                        Jsonb(technical_specs),
+                        clean_text(row.get("price_segment")),
+                        discount_percent,
                         crawled_at,
                         crawled_at.date(),
                         str(path),
@@ -305,6 +411,10 @@ def import_comparison_csv(path):
                     row.get("gia_ban_cellphones"),
                     row.get("gia_goc_cellphones"),
                 )
+                specs = row_specs(row)
+                technical_specs = clean_json_dict(row.get("technical_specs"))
+                if not technical_specs:
+                    technical_specs = specs_to_display(specs)
                 cur.execute(
                     """
                     INSERT INTO daily_price_comparisons (
@@ -312,14 +422,22 @@ def import_comparison_csv(path):
                         gia_ban_phongvu, gia_goc_phongvu, url_phongvu,
                         gia_ban_gearvn, gia_goc_gearvn, url_gearvn,
                         gia_ban_cellphones, gia_goc_cellphones, url_cellphones,
-                        image_url, so_website_co_hang, source_file
+                        image_url,
+                        cpu, gpu, ram, storage, screen_size, screen_resolution,
+                        refresh_rate, os, weight, battery, technical_specs,
+                        price_segment, discount_percent,
+                        so_website_co_hang, source_file
                     )
                     VALUES (
                         %s, %s, %s, %s,
                         %s, %s, %s,
                         %s, %s, %s,
                         %s, %s, %s,
-                        %s, %s, %s
+                        %s,
+                        %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s,
+                        %s, %s,
+                        %s, %s
                     )
                     ON CONFLICT (comparison_date, model_key, brand)
                     DO UPDATE SET
@@ -334,6 +452,19 @@ def import_comparison_csv(path):
                         gia_goc_cellphones = EXCLUDED.gia_goc_cellphones,
                         url_cellphones = EXCLUDED.url_cellphones,
                         image_url = EXCLUDED.image_url,
+                        cpu = EXCLUDED.cpu,
+                        gpu = EXCLUDED.gpu,
+                        ram = EXCLUDED.ram,
+                        storage = EXCLUDED.storage,
+                        screen_size = EXCLUDED.screen_size,
+                        screen_resolution = EXCLUDED.screen_resolution,
+                        refresh_rate = EXCLUDED.refresh_rate,
+                        os = EXCLUDED.os,
+                        weight = EXCLUDED.weight,
+                        battery = EXCLUDED.battery,
+                        technical_specs = EXCLUDED.technical_specs,
+                        price_segment = EXCLUDED.price_segment,
+                        discount_percent = EXCLUDED.discount_percent,
                         so_website_co_hang = EXCLUDED.so_website_co_hang,
                         source_file = EXCLUDED.source_file,
                         updated_at = NOW()
@@ -353,6 +484,19 @@ def import_comparison_csv(path):
                         cellphones_original,
                         clean_url(row.get("url_cellphones")),
                         clean_url(row.get("image_url")),
+                        specs.get("cpu"),
+                        specs.get("gpu"),
+                        specs.get("ram"),
+                        specs.get("storage"),
+                        specs.get("screen_size"),
+                        specs.get("screen_resolution"),
+                        specs.get("refresh_rate"),
+                        specs.get("os"),
+                        specs.get("weight"),
+                        specs.get("battery"),
+                        Jsonb(technical_specs),
+                        clean_text(row.get("price_segment")),
+                        clean_decimal(row.get("discount_percent")),
                         int(clean_number(row.get("so_website_co_hang")) or 0),
                         str(path),
                     ),

@@ -271,6 +271,63 @@ input:disabled {
 .metric-value { font: 900 22px/1.2 "JetBrains Mono", Consolas, monospace; margin-top: 10px; }
 .mono { font-family: "JetBrains Mono", Consolas, monospace; }
 
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.spec-item {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 9px 10px;
+}
+.spec-item span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.spec-item strong {
+  display: block;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.spec-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+}
+.price-insight {
+  margin-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+.price-insight-title {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.price-insight p {
+  margin: 6px 0 0;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.price-insight-meta {
+  margin-top: 8px;
+  color: #0057c2;
+  font-size: 12px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
 .price-row, .product-row, .favorite-row {
   display: flex;
   align-items: center;
@@ -526,7 +583,7 @@ input:disabled {
 @media (max-width: 640px) {
   .main { padding: 14px; }
   .actions, .chat-form { flex-direction: column; align-items: stretch; }
-  .metric-grid, .two-col { grid-template-columns: 1fr; }
+  .metric-grid, .two-col, .spec-grid { grid-template-columns: 1fr; }
 }
 
 /* Marketing homepage rebuilt from webdesign/Trang chu */

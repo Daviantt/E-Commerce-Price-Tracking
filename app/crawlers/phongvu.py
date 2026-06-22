@@ -5,7 +5,14 @@ from datetime import datetime
 import pandas as pd
 import requests
 
-from app.crawlers.common import clean_url, normalize_price_pair
+from app.crawlers.common import (
+    classify_price_segment,
+    clean_url,
+    compute_discount_percent,
+    extract_specs_from_product,
+    specs_to_display,
+    normalize_price_pair,
+)
 
 
 API_URL = "https://discovery.tekoapis.com/api/v2/search-skus-v2"
@@ -112,6 +119,7 @@ def normalize_product(item, brand):
 
     current_price, original_price = normalize_price_pair(current_price, original_price)
     image_urls = extract_image_urls(item)
+    specs = extract_specs_from_product(item, name, sku)
 
     return {
         "sku": sku,
@@ -124,6 +132,10 @@ def normalize_product(item, brand):
         "crawled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "image_url": clean_url(image_urls[0]) if image_urls else None,
         "image_urls": [url for url in (clean_url(url) for url in image_urls) if url],
+        **specs,
+        "technical_specs": specs_to_display(specs),
+        "price_segment": classify_price_segment(current_price),
+        "discount_percent": compute_discount_percent(current_price, original_price),
     }
 
 

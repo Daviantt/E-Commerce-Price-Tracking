@@ -24,6 +24,19 @@ CREATE TABLE IF NOT EXISTS raw_products (
     image_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
     collection_handle TEXT,
     model_key TEXT,
+    cpu TEXT,
+    gpu TEXT,
+    ram TEXT,
+    storage TEXT,
+    screen_size TEXT,
+    screen_resolution TEXT,
+    refresh_rate TEXT,
+    os TEXT,
+    weight TEXT,
+    battery TEXT,
+    technical_specs JSONB NOT NULL DEFAULT '{}'::jsonb,
+    price_segment TEXT,
+    discount_percent NUMERIC,
     crawled_at TIMESTAMPTZ NOT NULL,
     crawl_date DATE NOT NULL,
     raw_file TEXT,
@@ -36,6 +49,45 @@ ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 ALTER TABLE raw_products
 ADD COLUMN IF NOT EXISTS image_urls JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS cpu TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS gpu TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS ram TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS storage TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS screen_size TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS screen_resolution TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS refresh_rate TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS os TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS weight TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS battery TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS technical_specs JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS price_segment TEXT;
+
+ALTER TABLE raw_products
+ADD COLUMN IF NOT EXISTS discount_percent NUMERIC;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_raw_products_snapshot
 ON raw_products (
@@ -69,6 +121,19 @@ CREATE TABLE IF NOT EXISTS daily_price_comparisons (
     gia_goc_cellphones NUMERIC,
     url_cellphones TEXT,
     image_url TEXT,
+    cpu TEXT,
+    gpu TEXT,
+    ram TEXT,
+    storage TEXT,
+    screen_size TEXT,
+    screen_resolution TEXT,
+    refresh_rate TEXT,
+    os TEXT,
+    weight TEXT,
+    battery TEXT,
+    technical_specs JSONB NOT NULL DEFAULT '{}'::jsonb,
+    price_segment TEXT,
+    discount_percent NUMERIC,
     so_website_co_hang INTEGER NOT NULL DEFAULT 0,
     source_file TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -78,6 +143,45 @@ CREATE TABLE IF NOT EXISTS daily_price_comparisons (
 
 ALTER TABLE daily_price_comparisons
 ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS cpu TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS gpu TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS ram TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS storage TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS screen_size TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS screen_resolution TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS refresh_rate TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS os TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS weight TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS battery TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS technical_specs JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS price_segment TEXT;
+
+ALTER TABLE daily_price_comparisons
+ADD COLUMN IF NOT EXISTS discount_percent NUMERIC;
 
 CREATE INDEX IF NOT EXISTS ix_daily_comparisons_brand_date
 ON daily_price_comparisons (brand, comparison_date);

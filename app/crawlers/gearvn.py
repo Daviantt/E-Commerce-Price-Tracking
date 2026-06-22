@@ -5,7 +5,14 @@ from datetime import datetime
 import pandas as pd
 import requests
 
-from app.crawlers.common import clean_url, normalize_price_pair
+from app.crawlers.common import (
+    classify_price_segment,
+    clean_url,
+    compute_discount_percent,
+    extract_specs_from_product,
+    specs_to_display,
+    normalize_price_pair,
+)
 
 
 BASE_URL = "https://gearvn.com"
@@ -57,6 +64,13 @@ def normalize_product(item, brand, segment, collection_handle):
         first_variant.get("price"),
         first_variant.get("compare_at_price"),
     )
+    specs = extract_specs_from_product(
+        item,
+        item.get("title"),
+        item.get("body_html"),
+        first_variant.get("sku"),
+        " ".join(item.get("tags") or []),
+    )
 
     return {
         "product_id": item.get("id"),
@@ -73,6 +87,10 @@ def normalize_product(item, brand, segment, collection_handle):
         "crawled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "image_url": clean_url(image_urls[0]) if image_urls else None,
         "image_urls": [url for url in (clean_url(url) for url in image_urls) if url],
+        **specs,
+        "technical_specs": specs_to_display(specs),
+        "price_segment": classify_price_segment(current_price),
+        "discount_percent": compute_discount_percent(current_price, original_price),
     }
 
 
